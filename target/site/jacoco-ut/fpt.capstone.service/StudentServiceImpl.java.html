@@ -1,0 +1,918 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StudentServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">StudentServiceImpl.java</span></div><h1>StudentServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.repository.*;
+import fpt.capstone.vo.StudentVo;
+import fpt.capstone.vo.StudentDetailInformationVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.entities.Student;
+import fpt.capstone.entities.StudentHistory;
+import fpt.capstone.entities.User;
+import fpt.capstone.entities.Contact;
+import fpt.capstone.entities.ClassRoom;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+import fpt.capstone.form_data.StudentForm;
+
+import fpt.capstone.payroll.ValidationException;
+
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import fpt.capstone.security.services.UserDetailsImpl;
+import fpt.capstone.utility.PhoneCheck;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.Drawing;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+
+@Service
+@Transactional
+<span class="fc" id="L58">public class StudentServiceImpl implements StudentService {</span>
+    @Autowired
+    private StudentRepository repository;
+
+    @Autowired
+    private ContactRepository repositoryContact;
+
+    @Autowired
+    private ClassRoomRepository classRoomRepository;
+
+    @Autowired
+    private StudentHistoryRepository repositoryStudentHistory;
+
+    @Autowired
+    private StudentRepository repositoryStudent;
+
+    @Autowired
+    private UserRepository repositoryUser;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private GradebookSubjectsDetailsRepository gradebookSubjectsDetailsRepository;
+
+    @Autowired
+    private GradebookRepository gradebookRepository;
+
+
+    @Override
+    public ByteArrayInputStream exportTemplateExcel() {
+        byte[] result;
+        try {
+<span class="nc" id="L91">            result = Files.readAllBytes(Paths.get(&quot;src/main/resources/importTemplate/DS_HocSinh.xlsx&quot;));</span>
+<span class="nc" id="L92">            ByteArrayInputStream in = new ByteArrayInputStream(result);</span>
+<span class="nc" id="L93">            return in;</span>
+<span class="nc" id="L94">        } catch (IOException e) {</span>
+            // TODO Auto-generated catch block
+<span class="nc" id="L96">            e.printStackTrace();</span>
+        } 
+        
+<span class="nc" id="L99">        return null;</span>
+    }
+
+    public Boolean isExcelFormat(MultipartFile file) {
+<span class="nc" id="L103">        return file.getContentType().equals(&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;);</span>
+    }
+
+    public Boolean isNumber(String tmp) {
+        try {
+<span class="nc" id="L108">            Integer.parseInt(tmp);</span>
+<span class="nc" id="L109">        } catch (Exception e) {</span>
+<span class="nc" id="L110">            return false;</span>
+<span class="nc" id="L111">        }</span>
+<span class="nc" id="L112">        return true;</span>
+    }
+
+    public Boolean isEmpty(String tmp) {
+<span class="nc bnc" id="L116" title="All 4 branches missed.">        if (tmp.trim().isEmpty() || tmp == null) {</span>
+<span class="nc" id="L117">            return true;</span>
+        } else {
+<span class="nc" id="L119">            return false;</span>
+        }
+    }
+
+
+    //  [...]
+    public Boolean isInrange(Integer start, Integer end, Integer value) {
+<span class="nc bnc" id="L126" title="All 4 branches missed.">        if ( value &gt;= start &amp;&amp; value &lt;= end) {</span>
+<span class="nc" id="L127">            return true;</span>
+        } else {
+<span class="nc" id="L129">            return false;</span>
+        }
+    }
+
+    public Boolean isPhoneNumber(String tmp) {
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (!isNumber(tmp)) {</span>
+<span class="nc" id="L135">            return false;</span>
+        }
+<span class="nc" id="L137">        boolean check = false;</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        for (String phone : PhoneCheck.phoneHead) {</span>
+<span class="nc bnc" id="L139" title="All 4 branches missed.">            if (tmp.startsWith(phone) &amp;&amp; tmp.length() == 10) {</span>
+<span class="nc" id="L140">                check = true;</span>
+<span class="nc" id="L141">                break;</span>
+            }
+<span class="nc" id="L143">        }</span>
+<span class="nc" id="L144">        return check;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;String&gt;&gt; importExcel(MultipartFile file, String year) throws IOException {
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        if (isExcelFormat(file)) {</span>
+<span class="nc" id="L150">            Integer countSuccess = 0;</span>
+<span class="nc" id="L151">            Workbook workbook = new XSSFWorkbook(file.getInputStream());</span>
+<span class="nc" id="L152">            Sheet sheet = workbook.getSheetAt(0);</span>
+            // Get all rows
+<span class="nc" id="L154">            Iterator&lt;Row&gt; rows = sheet.iterator();</span>
+<span class="nc" id="L155">            int rowNumber = 0;</span>
+
+<span class="nc" id="L157">            Map&lt;String, List&lt;Integer&gt;&gt; result = new HashMap&lt;String, List&lt;Integer&gt;&gt;();</span>
+<span class="nc" id="L158">            result.put(&quot;student&quot;, new ArrayList&lt;Integer&gt;());</span>
+<span class="nc" id="L159">            result.put(&quot;contact&quot;, new ArrayList&lt;Integer&gt;());</span>
+<span class="nc" id="L160">            result.put(&quot;studenthistory&quot;, new ArrayList&lt;Integer&gt;());</span>
+<span class="nc" id="L161">            result.put(&quot;user&quot;, new ArrayList&lt;Integer&gt;());</span>
+
+<span class="nc" id="L163">            int processRow = 0;</span>
+
+            try {
+                
+<span class="nc bnc" id="L167" title="All 2 branches missed.">                while (rows.hasNext()) {</span>
+<span class="nc" id="L168">                    Row currentRow = rows.next();</span>
+<span class="nc" id="L169">                    String code = &quot;&quot;;</span>
+<span class="nc" id="L170">                    String fullName = &quot;&quot;;</span>
+<span class="nc" id="L171">                    Integer status = 0;</span>
+<span class="nc" id="L172">                    String phone = &quot;&quot;;</span>
+<span class="nc" id="L173">                    String birthDay = &quot;&quot;;</span>
+<span class="nc" id="L174">                    String nation = &quot;&quot;;</span>
+<span class="nc" id="L175">                    String permanentAddress = &quot;&quot;;</span>
+<span class="nc" id="L176">                    String socialInsuranceNumber = &quot;&quot;;</span>
+<span class="nc" id="L177">                    String issuedDate =&quot;&quot;;</span>
+<span class="nc" id="L178">                    Integer sex = null;</span>
+<span class="nc" id="L179">                    Integer deptId = null;</span>
+<span class="nc" id="L180">                    Integer trainingSystem = null;</span>
+<span class="nc" id="L181">                    String email = &quot;&quot;;</span>
+<span class="nc" id="L182">                    String religion = &quot;&quot;;</span>
+<span class="nc" id="L183">                    String homeTown = &quot;&quot;;</span>
+<span class="nc" id="L184">                    String temporaryAddress = &quot;&quot;;</span>
+<span class="nc" id="L185">                    String identityCard = &quot;&quot;;</span>
+<span class="nc" id="L186">                    String issuedAddress = &quot;&quot;;</span>
+<span class="nc" id="L187">                    String startDate = &quot;&quot;;</span>
+<span class="nc" id="L188">                    Integer electFormat = null;</span>
+<span class="nc" id="L189">                    Integer graduationType = null;</span>
+<span class="nc" id="L190">                    Integer quanHe = null;</span>
+<span class="nc" id="L191">                    String hoTenPhuHuynh = &quot;&quot;;</span>
+<span class="nc" id="L192">                    String soDienThoaiPhuHuynh = &quot;&quot;;</span>
+<span class="nc" id="L193">                    Integer quanHeSecond = null;</span>
+<span class="nc" id="L194">                    String hoTenPhuHuynhSecond = &quot;&quot;;</span>
+<span class="nc" id="L195">                    String soDienThoaiPhuHuynhSecond = &quot;&quot;;</span>
+<span class="nc" id="L196">                    String createdTime = &quot;&quot;;</span>
+<span class="nc" id="L197">                    String createdName = &quot;&quot;;</span>
+<span class="nc" id="L198">                    String updateTime = &quot;&quot;;</span>
+<span class="nc" id="L199">                    String updateName = &quot;&quot;;</span>
+<span class="nc" id="L200">                    String classCode = &quot;&quot;;</span>
+
+<span class="nc" id="L202">                    Boolean reachLast = false;</span>
+
+
+<span class="nc" id="L205">                    processRow = rowNumber;</span>
+
+<span class="nc bnc" id="L207" title="All 2 branches missed.">                    if (rowNumber &lt; 2) {</span>
+<span class="nc" id="L208">                        rowNumber++;</span>
+<span class="nc" id="L209">                        continue;</span>
+                    }
+<span class="nc" id="L211">                    Boolean isFailed = false;</span>
+<span class="nc" id="L212">                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;dd-MM-yyyy HH:mm&quot;);</span>
+                    
+                    
+<span class="nc" id="L215">                    Pattern VALID_EMAIL_ADDRESS_REGEX = Pattern.compile(&quot;^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$&quot;, Pattern.CASE_INSENSITIVE);</span>
+
+<span class="nc" id="L217">                    Boolean endLine = false;</span>
+<span class="nc" id="L218">                    List&lt;String&gt; errorMessage = new ArrayList&lt;String&gt;();</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">                    if (rowNumber &gt;= 2) {</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">                        for(int cellIdx = 0; cellIdx &lt;= 26; cellIdx ++){</span>
+<span class="nc" id="L221">                            Cell currentCell = currentRow.getCell(cellIdx);</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">                            if (currentCell  == null) {</span>
+<span class="nc" id="L223">                                currentCell = currentRow.createCell(cellIdx);</span>
+                            }
+<span class="nc" id="L225">                            String tmp = &quot;&quot;;</span>
+
+<span class="nc bnc" id="L227" title="All 2 branches missed.">                            if(currentCell.getCellType() == Cell.CELL_TYPE_NUMERIC) {</span>
+<span class="nc" id="L228">                                Double tmpNum = currentCell.getNumericCellValue();</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">                                if ((double)tmpNum.intValue()  == tmpNum ) {</span>
+<span class="nc" id="L230">                                    tmp = &quot;&quot; + tmpNum.intValue();</span>
+                                } else {
+<span class="nc" id="L232">                                    tmp = &quot;&quot; + currentCell.getNumericCellValue();</span>
+                                }
+<span class="nc bnc" id="L234" title="All 2 branches missed.">                            } else if( currentCell.getCellType() == Cell.CELL_TYPE_STRING) {</span>
+<span class="nc" id="L235">                                tmp = currentCell.getStringCellValue();</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">                            } else if (currentCell.getCellType() == Cell.CELL_TYPE_BLANK){</span>
+<span class="nc" id="L237">                                tmp = &quot;&quot;;</span>
+                            } else {
+<span class="nc" id="L239">                                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Lỗi định dạng dữ liêu khi đọc dòng &quot;+ (processRow+1), null);</span>
+                            }
+<span class="nc bnc" id="L241" title="All 2 branches missed.">                            if (cellIdx == 0) {</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L243">                                    endLine = true;</span>
+<span class="nc" id="L244">                                    break;</span>
+                                }
+                            }
+                            
+<span class="nc bnc" id="L248" title="All 2 branches missed.">                            if (cellIdx == 1) {</span>
+<span class="nc" id="L249">                                fullName = tmp;</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L251">                                    isFailed = true;</span>
+<span class="nc" id="L252">                                    errorMessage.add(&quot;Tên học sinh không được để trống.&quot;);</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">                                } else if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L254">                                    isFailed = true;</span>
+<span class="nc" id="L255">                                    errorMessage.add(&quot;Tên học sinh không được dài quá 250 ký tự.&quot;);</span>
+                                }
+                            }
+<span class="nc bnc" id="L258" title="All 2 branches missed.">                            if (cellIdx == 2) {</span>
+<span class="nc" id="L259">                                code = tmp;</span>
+<span class="nc bnc" id="L260" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L261">                                    isFailed = true;</span>
+<span class="nc" id="L262">                                    errorMessage.add( &quot;Mã học sinh không được để trống.&quot;);</span>
+                                } 
+<span class="nc bnc" id="L264" title="All 2 branches missed.">                                else if (tmp.length() &gt; 50) {</span>
+<span class="nc" id="L265">                                    isFailed = true;</span>
+<span class="nc" id="L266">                                    errorMessage.add(&quot;Mã học sinh không được dài quá 50 ký tự.&quot;);</span>
+                                }
+<span class="nc bnc" id="L268" title="All 2 branches missed.">                                else if (repository.findByCode(code).size() &gt; 0) {</span>
+<span class="nc" id="L269">                                    isFailed = true;</span>
+<span class="nc" id="L270">                                    errorMessage.add(&quot;Mã học sinh đã tồn tại.&quot;);</span>
+                                }
+                            }
+<span class="nc bnc" id="L273" title="All 2 branches missed.">                            if (cellIdx == 3) {</span>
+<span class="nc" id="L274">                                classCode = tmp;</span>
+<span class="nc" id="L275">                                deptId = null;</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L277">                                    isFailed = true;</span>
+<span class="nc" id="L278">                                    errorMessage.add(&quot;Mã lớp học không được để trống.&quot;);</span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">                                } else if (tmp.length() &gt; 50) {</span>
+<span class="nc" id="L280">                                    isFailed = true;</span>
+<span class="nc" id="L281">                                    errorMessage.add(&quot;Mã lớp học không được dài quá 50 ký tự.&quot;);</span>
+                                } else {
+
+<span class="nc" id="L284">                                    List&lt;Map&lt;String, Object&gt;&gt; dep = classRoomRepository.getDepIdOfClassroom(tmp);</span>
+
+<span class="nc bnc" id="L286" title="All 2 branches missed.">                                    if (dep.size() &gt; 0) {</span>
+<span class="nc" id="L287">                                        deptId = Integer.parseInt(&quot;&quot; + dep.get(0).get(&quot;dept_id&quot;));</span>
+                                    } else {
+<span class="nc" id="L289">                                        deptId =  null;</span>
+                                    }
+                                }
+<span class="nc bnc" id="L292" title="All 2 branches missed.">                                if (deptId == null) {</span>
+<span class="nc" id="L293">                                    isFailed = true;</span>
+<span class="nc" id="L294">                                    errorMessage.add(&quot;Mã lớp học không tồn tại.&quot;);</span>
+                                }
+                            }
+<span class="nc bnc" id="L297" title="All 2 branches missed.">                            if (cellIdx == 4) {</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L299">                                    isFailed = true;</span>
+<span class="nc" id="L300">                                    errorMessage.add(&quot;Hệ đào tạo không được để trống.&quot;);</span>
+                                } 
+<span class="nc bnc" id="L302" title="All 2 branches missed.">                                else if (!isNumber(tmp)) {</span>
+<span class="nc" id="L303">                                    isFailed = true;</span>
+<span class="nc" id="L304">                                    errorMessage.add(&quot;Hệ đào tạo phải là số.&quot;);</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">                                } else if (!isInrange(1, 6, Integer.parseInt(tmp))) {</span>
+<span class="nc" id="L306">                                    isFailed = true;</span>
+<span class="nc" id="L307">                                    errorMessage.add(&quot;Hệ đào tạo phải có giá trị trong khoảng 1 đến 6.&quot;);</span>
+                                } else {
+<span class="nc" id="L309">                                    trainingSystem = Integer.parseInt(tmp);</span>
+                                }
+                            }
+<span class="nc bnc" id="L312" title="All 2 branches missed.">                            if (cellIdx == 5) {</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L314">                                    isFailed = true;</span>
+<span class="nc" id="L315">                                    errorMessage.add(&quot;Giới tính không được để trống.&quot;);</span>
+                                }
+<span class="nc bnc" id="L317" title="All 2 branches missed.">                                else if (!isNumber(tmp)) {</span>
+<span class="nc" id="L318">                                    isFailed = true;</span>
+<span class="nc" id="L319">                                    errorMessage.add(&quot;Giới tính phải là số.&quot;);</span>
+<span class="nc bnc" id="L320" title="All 2 branches missed.">                                } else if (!isInrange(0, 1, Integer.parseInt(tmp))) {</span>
+<span class="nc" id="L321">                                    isFailed = true;</span>
+<span class="nc" id="L322">                                    errorMessage.add(&quot;Giới tính phải có giá trị là 0 hoặc 1.&quot;);</span>
+                                } else {
+<span class="nc" id="L324">                                    sex = Integer.parseInt(tmp);</span>
+                                }
+                            }
+<span class="nc bnc" id="L327" title="All 2 branches missed.">                            if (cellIdx == 6) {</span>
+<span class="nc bnc" id="L328" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L329">                                    startDate = null;</span>
+                                }
+                                else {
+                                    try{
+<span class="nc" id="L333">                                        LocalDateTime dateTmp = LocalDateTime.parse(tmp + &quot; 00:00&quot;, formatter);</span>
+<span class="nc" id="L334">                                        startDate = tmp;</span>
+<span class="nc" id="L335">                                    } catch (Exception e) {</span>
+<span class="nc" id="L336">                                        isFailed = true;</span>
+<span class="nc" id="L337">                                        errorMessage.add(&quot;Ngày vào trường phải có định dạng dd-mm-yyy hoặc ngày vào trường không tồn tại.&quot;);</span>
+<span class="nc" id="L338">                                        startDate = null;</span>
+<span class="nc" id="L339">                                    }</span>
+                                }
+                            }
+<span class="nc bnc" id="L342" title="All 2 branches missed.">                            if (cellIdx == 7) {</span>
+<span class="nc bnc" id="L343" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L344">                                    electFormat = null;</span>
+                                }
+<span class="nc bnc" id="L346" title="All 2 branches missed.">                                else if (!isNumber(tmp)) {</span>
+<span class="nc" id="L347">                                    isFailed = true;</span>
+<span class="nc" id="L348">                                    errorMessage.add(&quot;Hình thức trúng tuyển phải là số.&quot;);</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">                                } else if (!isInrange(0, 1, Integer.parseInt(tmp))) {</span>
+<span class="nc" id="L350">                                    isFailed = true;</span>
+<span class="nc" id="L351">                                    errorMessage.add(&quot;Hình thức trúng tuyển phải có giá trị là 0 hoặc 1.&quot;);</span>
+                                } else {
+<span class="nc" id="L353">                                    electFormat = Integer.parseInt(tmp);</span>
+                                }
+                            }
+<span class="nc bnc" id="L356" title="All 2 branches missed.">                            if (cellIdx == 8) {</span>
+<span class="nc bnc" id="L357" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L358">                                    graduationType = null;</span>
+                                }
+<span class="nc bnc" id="L360" title="All 2 branches missed.">                                else if (!isNumber(tmp)) {</span>
+<span class="nc" id="L361">                                    isFailed = true;</span>
+<span class="nc" id="L362">                                    errorMessage.add(&quot;Loại tốt nghiệp cấp dưới phải là số.&quot;);</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">                                } else if (!isInrange(1, 3, Integer.parseInt(tmp))) {</span>
+<span class="nc" id="L364">                                    isFailed = true;</span>
+<span class="nc" id="L365">                                    errorMessage.add(&quot;Loại tốt nghiệp cấp dưới phải có giá trị từ 1 đến 3.&quot;);</span>
+                                } else {
+<span class="nc" id="L367">                                    graduationType = Integer.parseInt(tmp);</span>
+                                }
+                            }
+<span class="nc bnc" id="L370" title="All 2 branches missed.">                            if (cellIdx == 9) {</span>
+<span class="nc bnc" id="L371" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L372">                                    isFailed = true;</span>
+<span class="nc" id="L373">                                    errorMessage.add(&quot;Loại quan hệ liên hệ 1 không được để trống.&quot;);</span>
+                                }
+<span class="nc bnc" id="L375" title="All 2 branches missed.">                                else if (!isNumber(tmp)) {</span>
+<span class="nc" id="L376">                                    isFailed = true;</span>
+<span class="nc" id="L377">                                    errorMessage.add(&quot;Loại quan hệ liên hệ 1 phải là số.&quot;);</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">                                } else if (!isInrange(0, 5, Integer.parseInt(tmp))) {</span>
+<span class="nc" id="L379">                                    isFailed = true;</span>
+<span class="nc" id="L380">                                    errorMessage.add(&quot;Loại quan hệ liên hệ 1 phải có giá trị từ 0 đến 5.&quot;);</span>
+                                } else {
+<span class="nc" id="L382">                                    quanHe = Integer.parseInt(tmp);</span>
+                                }
+                            }
+<span class="nc bnc" id="L385" title="All 2 branches missed.">                            if (cellIdx == 10) {</span>
+<span class="nc bnc" id="L386" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L387">                                    isFailed = true;</span>
+<span class="nc" id="L388">                                    errorMessage.add(&quot;Họ tên phụ huynh liên hệ 1 không được để trống.&quot;);</span>
+                                } else {
+<span class="nc" id="L390">                                    hoTenPhuHuynh = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L393" title="All 2 branches missed.">                            if (cellIdx == 11) {</span>
+<span class="nc bnc" id="L394" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L395">                                    isFailed = true;</span>
+<span class="nc" id="L396">                                    errorMessage.add(&quot;Số điện thoại phụ huynh 1 không được để trống. &quot;);</span>
+                                }
+<span class="nc bnc" id="L398" title="All 2 branches missed.">                                else if (!isPhoneNumber(tmp)) {</span>
+<span class="nc" id="L399">                                    isFailed = true;</span>
+<span class="nc" id="L400">                                    errorMessage.add(&quot;Số điện thoại phụ huynh 1 không đúng định dạng.&quot;);</span>
+                                } else {
+<span class="nc" id="L402">                                    soDienThoaiPhuHuynh = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L405" title="All 2 branches missed.">                            if (cellIdx == 12) {</span>
+<span class="nc bnc" id="L406" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L407">                                    quanHeSecond = null;</span>
+                                }
+<span class="nc bnc" id="L409" title="All 2 branches missed.">                                else if (!isNumber(tmp)) {</span>
+<span class="nc" id="L410">                                    isFailed = true;</span>
+<span class="nc" id="L411">                                    errorMessage.add(&quot;Loại quan hệ liên hệ 2 phải là số.&quot;);</span>
+<span class="nc bnc" id="L412" title="All 2 branches missed.">                                } else if (!isInrange(0, 5, Integer.parseInt(tmp))) {</span>
+<span class="nc" id="L413">                                    isFailed = true;</span>
+<span class="nc" id="L414">                                    errorMessage.add(&quot;Loại quan hệ liên hệ 2 phải có giá trị từ 0 đến 5.&quot;);</span>
+                                } else {
+<span class="nc" id="L416">                                    quanHeSecond = Integer.parseInt(tmp);</span>
+                                }
+                            }
+<span class="nc bnc" id="L419" title="All 2 branches missed.">                            if (cellIdx == 13) {</span>
+<span class="nc" id="L420">                                hoTenPhuHuynhSecond = tmp;</span>
+                            }
+<span class="nc bnc" id="L422" title="All 2 branches missed.">                            if (cellIdx == 14) {</span>
+<span class="nc bnc" id="L423" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L424">                                    soDienThoaiPhuHuynhSecond = &quot;&quot;;</span>
+                                }
+<span class="nc bnc" id="L426" title="All 2 branches missed.">                                else if (!isPhoneNumber(tmp)) {</span>
+<span class="nc" id="L427">                                    isFailed = true;</span>
+<span class="nc" id="L428">                                    errorMessage.add(&quot;Số điện thoại phụ huynh 2 không đúng định dạng.&quot;);</span>
+                                } else {
+<span class="nc" id="L430">                                    soDienThoaiPhuHuynhSecond = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L433" title="All 2 branches missed.">                            if (cellIdx == 15) {</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L435">                                    isFailed = true;</span>
+<span class="nc" id="L436">                                    errorMessage.add(&quot;Số điện thoại không được để trống.&quot;);</span>
+                                }
+<span class="nc bnc" id="L438" title="All 2 branches missed.">                                else if (!isPhoneNumber(tmp)) {</span>
+<span class="nc" id="L439">                                    isFailed = true;</span>
+<span class="nc" id="L440">                                    errorMessage.add(&quot;Số điện thoại không đúng định dạng.&quot;);</span>
+                                } else {
+<span class="nc" id="L442">                                    phone = tmp;</span>
+                                }
+                            } 
+<span class="nc bnc" id="L445" title="All 2 branches missed.">                            if (cellIdx == 16) {</span>
+<span class="nc bnc" id="L446" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L447">                                    email = &quot;&quot;;</span>
+                                }
+                                else {
+<span class="nc" id="L450">                                    Matcher matcher = VALID_EMAIL_ADDRESS_REGEX.matcher(tmp);</span>
+<span class="nc bnc" id="L451" title="All 2 branches missed.">                                    if (matcher.find()) {</span>
+<span class="nc" id="L452">                                        email =  tmp;</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">                                    } else if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L454">                                        isFailed = true;</span>
+<span class="nc" id="L455">                                        errorMessage.add(&quot;Email không quá 250 ký tự.&quot;);                </span>
+                                    }
+                                    else {
+<span class="nc" id="L458">                                        isFailed = true;</span>
+<span class="nc" id="L459">                                        errorMessage.add(&quot;Email có định dạng không hợp lệ.&quot;);       </span>
+                                    }
+                                }
+                            }
+<span class="nc bnc" id="L463" title="All 2 branches missed.">                            if (cellIdx == 17) {</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L465">                                    birthDay = null;</span>
+                                }
+                                else {
+                                    try{
+<span class="nc" id="L469">                                        LocalDateTime dateTmp = LocalDateTime.parse(tmp + &quot; 00:00&quot;, formatter);</span>
+<span class="nc" id="L470">                                        birthDay = tmp;</span>
+<span class="nc" id="L471">                                    } catch (Exception e) {</span>
+<span class="nc" id="L472">                                        isFailed = true;</span>
+<span class="nc" id="L473">                                        errorMessage.add(&quot;Ngày sinh phải có định dạng dd-mm-yyy hoặc ngày sinh không tồn tại.&quot;);</span>
+<span class="nc" id="L474">                                        birthDay = null;</span>
+<span class="nc" id="L475">                                    }</span>
+                                }
+                            }
+<span class="nc bnc" id="L478" title="All 2 branches missed.">                            if (cellIdx == 18) {</span>
+<span class="nc" id="L479">                                religion = tmp;</span>
+<span class="nc bnc" id="L480" title="All 2 branches missed.">                                if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L481">                                    isFailed = true;</span>
+<span class="nc" id="L482">                                    errorMessage.add(&quot;Tôn giáo không được quá 250 ký tự.&quot;);</span>
+                                } else {
+<span class="nc" id="L484">                                    religion = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L487" title="All 2 branches missed.">                            if (cellIdx == 19) {                            </span>
+<span class="nc bnc" id="L488" title="All 2 branches missed.">                                if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L489">                                    isFailed = true;</span>
+<span class="nc" id="L490">                                    errorMessage.add(&quot;Dân tộc không được quá 250 ký tự.&quot;);</span>
+                                } else {
+<span class="nc" id="L492">                                    nation = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L495" title="All 2 branches missed.">                            if (cellIdx == 20) {</span>
+<span class="nc bnc" id="L496" title="All 2 branches missed.">                                if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L497">                                    isFailed = true;</span>
+<span class="nc" id="L498">                                    errorMessage.add(&quot;Quê quán không được quá 250 ký tự.&quot;);</span>
+                                } else {
+<span class="nc" id="L500">                                    homeTown = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L503" title="All 2 branches missed.">                            if (cellIdx == 21) {</span>
+<span class="nc bnc" id="L504" title="All 2 branches missed.">                                if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L505">                                    isFailed = true;</span>
+<span class="nc" id="L506">                                    errorMessage.add(&quot;Địa chỉ thường chú không được quá 250 ký tự.&quot;);</span>
+                                } else {
+<span class="nc" id="L508">                                    permanentAddress = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L511" title="All 2 branches missed.">                            if (cellIdx == 22) {</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">                                if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L513">                                    isFailed = true;</span>
+<span class="nc" id="L514">                                    errorMessage.add(&quot;Địa chỉ tạm chú không được quá 250 ký tự.&quot;);</span>
+                                } else {
+<span class="nc" id="L516">                                    temporaryAddress = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L519" title="All 2 branches missed.">                            if (cellIdx == 23) {</span>
+<span class="nc bnc" id="L520" title="All 2 branches missed.">                                if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L521">                                    isFailed = true;</span>
+<span class="nc" id="L522">                                    errorMessage.add(&quot;Số CMND/CCCD không được quá 250 ký tự.&quot;);</span>
+                                } else {
+<span class="nc" id="L524">                                    identityCard = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L527" title="All 2 branches missed.">                            if (cellIdx == 24) {</span>
+<span class="nc bnc" id="L528" title="All 2 branches missed.">                                if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L529">                                    isFailed = true;</span>
+<span class="nc" id="L530">                                    errorMessage.add(&quot;Nơi cấp CMND/CCCD không được quá 250 ký tự.&quot;);</span>
+                                } else {
+<span class="nc" id="L532">                                    issuedAddress = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L535" title="All 2 branches missed.">                            if (cellIdx == 25) {</span>
+<span class="nc bnc" id="L536" title="All 2 branches missed.">                                if (isEmpty(tmp)) {</span>
+<span class="nc" id="L537">                                    issuedDate = null;</span>
+                                }
+                                else {
+                                    try{
+<span class="nc" id="L541">                                        LocalDateTime dateTmp = LocalDateTime.parse(tmp + &quot; 00:00&quot;, formatter);</span>
+<span class="nc" id="L542">                                        issuedDate = tmp;</span>
+<span class="nc" id="L543">                                    } catch (Exception e) {</span>
+<span class="nc" id="L544">                                        isFailed = true;</span>
+<span class="nc" id="L545">                                        errorMessage.add(&quot;Ngày cấp CMND phải có định dạng dd-mm-yyy hoặc Ngày cấp CMND không tồn tại.&quot;);</span>
+<span class="nc" id="L546">                                        issuedDate = null;</span>
+<span class="nc" id="L547">                                    }</span>
+                                }
+                                
+                            }
+
+<span class="nc bnc" id="L552" title="All 2 branches missed.">                            if (cellIdx == 26) {</span>
+<span class="nc bnc" id="L553" title="All 2 branches missed.">                                if (tmp.length() &gt; 250) {</span>
+<span class="nc" id="L554">                                    isFailed = true;</span>
+<span class="nc" id="L555">                                    errorMessage.add(&quot;Số sổ BHXH không được quá 250 ký tự.&quot;);</span>
+                                } else {
+<span class="nc" id="L557">                                    socialInsuranceNumber = tmp;</span>
+                                }
+                            }
+<span class="nc bnc" id="L560" title="All 2 branches missed.">                            if (cellIdx == 26) {</span>
+<span class="nc" id="L561">                                reachLast = true;</span>
+<span class="nc" id="L562">                                break;</span>
+                            }
+                        }
+                    }
+<span class="nc bnc" id="L566" title="All 2 branches missed.">                    if (endLine) {</span>
+<span class="nc" id="L567">                        break;</span>
+                    }
+<span class="nc bnc" id="L569" title="All 4 branches missed.">                    if (isFailed || !reachLast) {</span>
+<span class="nc" id="L570">                        rollBackForStudent(result);</span>
+<span class="nc" id="L571">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST,&quot;Lỗi tại dòng &quot; + (processRow+1), errorMessage);</span>
+                    } else {
+<span class="nc" id="L573">                        StudentForm form = new StudentForm(&quot;&quot;, code, fullName, status, phone, birthDay, nation, permanentAddress, socialInsuranceNumber, issuedDate, sex, deptId, trainingSystem, email, religion, homeTown, temporaryAddress, identityCard, issuedAddress, startDate, electFormat, graduationType, quanHe, hoTenPhuHuynh, soDienThoaiPhuHuynh, quanHeSecond, hoTenPhuHuynhSecond, soDienThoaiPhuHuynhSecond, createdName, updateTime, updateName, classCode, year);</span>
+<span class="nc" id="L574">                        Map&lt;String, List&lt;Integer&gt;&gt; insertAStudent = insertAStudent(form);</span>
+<span class="nc bnc" id="L575" title="All 2 branches missed.">                        if (insertAStudent == null) {</span>
+<span class="nc" id="L576">                            rollBackForStudent(result);</span>
+                        } else {
+<span class="nc" id="L578">                            countSuccess += 1;</span>
+<span class="nc" id="L579">                            result.get(&quot;student&quot;).addAll(insertAStudent.get(&quot;student&quot;));</span>
+<span class="nc" id="L580">                            result.get(&quot;contact&quot;).addAll(insertAStudent.get(&quot;contact&quot;));</span>
+<span class="nc" id="L581">                            result.get(&quot;studenthistory&quot;).addAll(insertAStudent.get(&quot;studenthistory&quot;));</span>
+<span class="nc" id="L582">                            result.get(&quot;user&quot;).addAll(insertAStudent.get(&quot;user&quot;));</span>
+                        }
+                    }
+<span class="nc" id="L585">                    rowNumber++;</span>
+<span class="nc" id="L586">                }</span>
+<span class="nc" id="L587">            } catch (Exception e) {</span>
+<span class="nc" id="L588">                rollBackForStudent(result);</span>
+<span class="nc" id="L589">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Import file không thành công. Lỗi khi sử lý dòng &quot;+ (processRow+1)+&quot;\n&quot;, null);</span>
+<span class="nc" id="L590">            }</span>
+<span class="nc bnc" id="L591" title="All 2 branches missed.">            if (countSuccess == 0) {</span>
+<span class="nc" id="L592">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;File import không có dữ liệu học sinh&quot;, null);</span>
+            } else {
+<span class="nc" id="L594">                return new ServiceResult&lt;&gt;(HttpStatus.OK, countSuccess + &quot; học sinh đã được thêm mới&quot;, null);</span>
+            }
+        } else {
+<span class="nc" id="L597">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;File không đúng định dạng&quot;, null);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Page&lt;StudentVo&gt;&gt; getAllStudentByNameOrCodeInClass(String status, String class_code, String search_word, String grade_level, String years, Pageable pageable) {
+<span class="nc" id="L603">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Student list&quot;, repository.getAllStudentByNameOrCodeInClassAllStatus(status, class_code, search_word, grade_level, years, pageable));        </span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; insert(StudentForm form) {
+<span class="fc bfc" id="L608" title="All 2 branches covered.">        if (form.getCode().length() == 0) {</span>
+<span class="fc" id="L609">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin mã học sinh&quot;, true);</span>
+        } else {
+<span class="fc bfc" id="L611" title="All 2 branches covered.">            if (repository.findByCode(form.getCode()).size() &gt; 0) {</span>
+<span class="fc" id="L612">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Mã học sinh đã tồn tại&quot;, true);</span>
+            }
+        }
+
+<span class="fc bfc" id="L616" title="All 2 branches covered.">        if (form.getFullName().length() == 0) {</span>
+<span class="fc" id="L617">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin tên học sinh&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L620" title="All 2 branches covered.">        if (form.getStatus() == null) {</span>
+<span class="fc" id="L621">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin trạng thái&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L624" title="All 2 branches covered.">        if (form.getTrainingSystem() == null) {</span>
+<span class="fc" id="L625">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin hệ đào tạo&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L628" title="All 2 branches covered.">        if (form.getQuanHe() == null) {</span>
+<span class="fc" id="L629">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin phụ huynh&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L632" title="All 2 branches covered.">        if (form.getHoTenPhuHuynh().length() == 0) {</span>
+<span class="fc" id="L633">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin họ tên phụ huynh&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L636" title="All 2 branches covered.">        if (form.getSoDienThoaiPhuHuynh().length() == 0) {</span>
+<span class="fc" id="L637">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin số điện thoại phụ huynh&quot;, true);</span>
+        }
+
+<span class="pc bpc" id="L640" title="1 of 2 branches missed.">        if (form.getClassCode().length() == 0) {</span>
+<span class="fc" id="L641">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin lớp học&quot;, true);</span>
+        }
+
+<span class="nc" id="L644">        Map&lt;String, List&lt;Integer&gt;&gt; insertAStudent = insertAStudent(form);</span>
+<span class="nc bnc" id="L645" title="All 2 branches missed.">        if (insertAStudent == null) {</span>
+<span class="nc" id="L646">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Lỗi khi tạo học sinh&quot;, true);</span>
+        } else {
+<span class="nc" id="L648">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Tạo mới học sinh thành công&quot;, true);</span>
+        }
+      
+    }
+
+
+    private Map&lt;String, List&lt;Integer&gt;&gt; insertAStudent(StudentForm form) {
+<span class="nc" id="L655">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L657" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L658">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L660">            username = principal.toString();</span>
+        }
+<span class="nc" id="L662">        Map&lt;String, List&lt;Integer&gt;&gt; result = new HashMap&lt;String, List&lt;Integer&gt;&gt;();</span>
+<span class="nc" id="L663">        result.put(&quot;student&quot;, new ArrayList&lt;Integer&gt;());</span>
+<span class="nc" id="L664">        result.put(&quot;contact&quot;, new ArrayList&lt;Integer&gt;());</span>
+<span class="nc" id="L665">        result.put(&quot;studenthistory&quot;, new ArrayList&lt;Integer&gt;());</span>
+<span class="nc" id="L666">        result.put(&quot;user&quot;, new ArrayList&lt;Integer&gt;());</span>
+
+        try {
+<span class="nc" id="L669">            Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="nc" id="L670">            UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();</span>
+<span class="nc" id="L671">            String createdName = userDetails.getUsername();</span>
+
+<span class="nc" id="L673">            Student s = new Student(form.getCreatedTime(), createdName, form.getUpdateTime(), form.getUpdateName(), form.getFullName(), form.getCode(), form.getDeptId(), form.getStartDate(), form.getPhone(), form.getEmail(), form.getBirthDay(), form.getHomeTown(), form.getNation(), form.getPermanentAddress(), form.getSocialInsuranceNumber(), form.getIdentityCard(),form.getIssuedAddress(), form.getIssuedDate(), form.getSex(), form.getAvatar(), form.getElectFormat(), form.getGraduationType(), form.getStatus(), form.getTrainingSystem(), form.getReligion(), form.getTemporaryAddress());</span>
+<span class="nc" id="L674">            List&lt;Student&gt; students = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L675">            students.add(s);</span>
+<span class="nc" id="L676">            List&lt;Student&gt; resultSaveStudent = repository.saveAll(students);</span>
+<span class="nc bnc" id="L677" title="All 2 branches missed.">            for(Student i: resultSaveStudent) {</span>
+<span class="nc" id="L678">                result.get(&quot;student&quot;).add(i.getId());</span>
+<span class="nc" id="L679">            }</span>
+<span class="nc" id="L680">            Integer studentId = resultSaveStudent.get(0).getId();</span>
+            
+<span class="nc" id="L682">            Contact c_primary = new Contact(&quot;&quot;, LocalDateTime.now(), form.getHoTenPhuHuynh(), form.getSoDienThoaiPhuHuynh(), 1, form.getQuanHe(), studentId);</span>
+<span class="nc" id="L683">            List&lt;Contact&gt; contacts = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L684">            contacts.add(c_primary);</span>
+
+<span class="nc" id="L686">            Contact c_second = new Contact(&quot;&quot;, LocalDateTime.now(), form.getHoTenPhuHuynhSecond(), form.getSoDienThoaiPhuHuynhSecond(), 0, form.getQuanHeSecond(), studentId);</span>
+<span class="nc" id="L687">            contacts.add(c_second);</span>
+
+<span class="nc" id="L689">            List&lt;Contact&gt; resultSaveContact = repositoryContact.saveAll(contacts);</span>
+
+<span class="nc bnc" id="L691" title="All 2 branches missed.">            for (Contact i : resultSaveContact) {</span>
+<span class="nc" id="L692">                result.get(&quot;contact&quot;).add(i.getId());</span>
+<span class="nc" id="L693">            }</span>
+
+<span class="nc" id="L695">            StudentHistory sh = new StudentHistory(form.getCode(), form.getClassCode(), form.getYear());</span>
+<span class="nc" id="L696">            List&lt;StudentHistory&gt; studentHistoryList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L697">            studentHistoryList.add(sh);</span>
+<span class="nc" id="L698">            List&lt;StudentHistory&gt; resultSaveStudentHistory = repositoryStudentHistory.saveAll(studentHistoryList);</span>
+<span class="nc bnc" id="L699" title="All 2 branches missed.">            for(StudentHistory i: resultSaveStudentHistory) {</span>
+<span class="nc" id="L700">                result.get(&quot;studenthistory&quot;).add(i.getId());</span>
+<span class="nc" id="L701">            }</span>
+
+<span class="nc" id="L703">            User userSaved = userService.insertUserForStudent(form.getCode(), form.getFullName(),  form.getSoDienThoaiPhuHuynh(),form.getAvatar(), form.getEmail(), null,username);</span>
+<span class="nc bnc" id="L704" title="All 2 branches missed.">            if (userSaved == null) {</span>
+<span class="nc" id="L705">                throw new Exception();</span>
+            }
+<span class="nc" id="L707">            result.get(&quot;user&quot;).add(userSaved.getId());</span>
+<span class="nc" id="L708">        } catch (Exception e) {</span>
+<span class="nc" id="L709">            rollBackForStudent(result);</span>
+<span class="nc" id="L710">            return null;</span>
+<span class="nc" id="L711">        }</span>
+<span class="nc" id="L712">        return result;</span>
+    }
+
+    private void rollBackForStudent (Map&lt;String, List&lt;Integer&gt;&gt; result) {
+<span class="nc bnc" id="L716" title="All 2 branches missed.">        for(Integer i: result.get(&quot;student&quot;)) {</span>
+            try {
+<span class="nc" id="L718">                repository.deleteById(i);</span>
+<span class="nc" id="L719">            } catch (Exception e) {</span>
+
+<span class="nc" id="L721">            }</span>
+            
+<span class="nc" id="L723">        }</span>
+<span class="nc bnc" id="L724" title="All 2 branches missed.">        for(Integer i: result.get(&quot;contact&quot;)) {</span>
+            try {
+<span class="nc" id="L726">                repositoryContact.deleteById(i);</span>
+<span class="nc" id="L727">            } catch (Exception e) {</span>
+<span class="nc" id="L728">            }</span>
+<span class="nc" id="L729">        }</span>
+<span class="nc bnc" id="L730" title="All 2 branches missed.">        for(Integer i: result.get(&quot;studenthistory&quot;)) {</span>
+            try {
+<span class="nc" id="L732">                repositoryStudentHistory.deleteById(i);</span>
+<span class="nc" id="L733">            } catch (Exception e) {</span>
+
+<span class="nc" id="L735">            }</span>
+<span class="nc" id="L736">        }</span>
+<span class="nc bnc" id="L737" title="All 2 branches missed.">        for(Integer i: result.get(&quot;user&quot;)) {</span>
+            try {
+<span class="nc" id="L739">                repositoryUser.deleteById(i);</span>
+<span class="nc" id="L740">            } catch  (Exception e) {</span>
+<span class="nc" id="L741">            }</span>
+<span class="nc" id="L742">        }</span>
+<span class="nc" id="L743">    }</span>
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; update(StudentForm form) {
+<span class="pc bpc" id="L747" title="1 of 4 branches missed.">        if(form.getCode() == null || form.getCode().length() == 0)</span>
+        {
+<span class="fc" id="L749">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin mã học sinh&quot;, true);</span>
+        }
+
+<span class="pc bpc" id="L752" title="1 of 4 branches missed.">        if(form.getFullName() == null || form.getFullName().length() == 0)</span>
+        {
+<span class="fc" id="L754">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin tên học sinh&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L757" title="All 2 branches covered.">        if(form.getStatus() == null)</span>
+        {
+<span class="fc" id="L759">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin trạng thái&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L762" title="All 2 branches covered.">        if(form.getTrainingSystem() == null)</span>
+        {
+<span class="fc" id="L764">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin hệ đào tạo&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L767" title="All 2 branches covered.">        if(form.getQuanHe() == null)</span>
+        {
+<span class="fc" id="L769">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin phụ huynh&quot;, true);</span>
+        }
+
+<span class="pc bpc" id="L772" title="1 of 4 branches missed.">        if(form.getHoTenPhuHuynh() == null || form.getHoTenPhuHuynh().length() == 0)</span>
+        {
+<span class="fc" id="L774">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST,&quot;Thiếu thông tin họ tên phụ huynh&quot;, true);</span>
+        }
+
+<span class="pc bpc" id="L777" title="1 of 4 branches missed.">        if (form.getSoDienThoaiPhuHuynh() == null || form.getSoDienThoaiPhuHuynh().length() == 0) {</span>
+<span class="fc" id="L778">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST,&quot;Thiếu thông tin số điện thoại phụ huynh&quot;, true);</span>
+        }
+
+<span class="pc bpc" id="L781" title="2 of 4 branches missed.">        if (form.getClassCode() ==null || form.getClassCode().length() == 0) {</span>
+<span class="fc" id="L782">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST,&quot;Thiếu thông tin lớp học&quot;, true);</span>
+        }
+
+<span class="nc" id="L785">        Optional&lt;ClassRoom&gt; tt = classRoomRepository.getClassRoomByCode(form.getClassCode());</span>
+<span class="nc bnc" id="L786" title="All 2 branches missed.">        if(!tt.isPresent()) {</span>
+<span class="nc" id="L787">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST,&quot;Lớp học không tồn tại&quot;, true);</span>
+        }
+        // if (tt.size() == 0  ) {
+        //     return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST,&quot;Mã lớp học không tồn tại&quot;, true);
+        // }
+
+<span class="nc" id="L793">        List&lt;StudentDetailInformationVo&gt; hstmp = repository.getStudentDetailInformation(form.getCode(), form.getYear(), PageRequest.of(0, 1));</span>
+<span class="nc bnc" id="L794" title="All 2 branches missed.">        if(hstmp.size() == 0) {</span>
+<span class="nc" id="L795">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST,&quot;Sai thông tin học sinh&quot;, true);</span>
+        }
+
+<span class="nc" id="L798">        String oldClassCode = hstmp.get(0).getClass_code();</span>
+<span class="nc bnc" id="L799" title="All 2 branches missed.">        if(!oldClassCode.equals(form.getClassCode())) {</span>
+<span class="nc bnc" id="L800" title="All 2 branches missed.">            if(gradebookRepository.checkExistScoreToChangeClass(form.getYear(), form.getCode())){</span>
+<span class="nc" id="L801">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể đổi lớp cho học sinh đã có thông tin điểm&quot;, null);</span>
+            }
+        }
+
+<span class="nc" id="L805">        Student s = new Student(form.getCreatedTime(), &quot;&quot;, form.getUpdateTime(), form.getUpdateName(), form.getFullName(), form.getCode(), form.getDeptId(), form.getStartDate(), form.getPhone(), form.getEmail(), form.getBirthDay(), form.getHomeTown(), form.getNation(), form.getPermanentAddress(), form.getSocialInsuranceNumber(), form.getIdentityCard(),form.getIssuedAddress(), form.getIssuedDate(), form.getSex(), form.getAvatar(), form.getElectFormat(), form.getGraduationType(), form.getStatus(), form.getTrainingSystem(), form.getReligion(), form.getTemporaryAddress());</span>
+        
+        
+        // gradebookRepository.checkExistScoreToChangeClass(year, studentCode)
+<span class="nc" id="L809">        repository.update(s.getCode(), s.getUpdateName(), s.getFullName(), s.getDeptId(), s.getStartDate(), s.getPhone(), s.getEmail(), s.getBirthDay(), s.getHomeTown(), s.getNation(), s.getPermanentAddress(), s.getSocialInsuranceNumber(), s.getIdentityCard(), s.getIssuedAddress(), s.getIssuedDate(), s.getSex(), s.getAvatar(), s.getElectFormat(), s.getGraduationType(), s.getStatus(), s.getTrainingSystem(), s.getReligion(), s.getTemporaryAddress());</span>
+<span class="nc" id="L810">        Integer studentId = repository.findByCode(s.getCode()).get(0).getId();</span>
+
+<span class="nc" id="L812">        repositoryContact.updatePrimary(form.getHoTenPhuHuynh(), form.getSoDienThoaiPhuHuynh(), form.getQuanHe(), studentId);</span>
+<span class="nc" id="L813">        repositoryContact.updateSecond(form.getHoTenPhuHuynhSecond(), form.getSoDienThoaiPhuHuynhSecond(), form.getQuanHeSecond(), studentId);</span>
+
+<span class="nc" id="L815">        repositoryStudentHistory.update(form.getClassCode(), form.getCode(), form.getYear());</span>
+        // StudentHistory sh = new StudentHistory(form.getCode(), form.getClassCode(), form.getYear());
+        // List&lt;StudentHistory&gt; studentHistoryList = new ArrayList&lt;&gt;();
+        // studentHistoryList.add(sh);
+        // repositoryStudentHistory.saveAll(studentHistoryList);
+
+<span class="nc" id="L821">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật học sinh thành công!&quot;, true);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getStudentOfClass(String year, String classCode, Integer semester, String subjectCode) {
+<span class="nc" id="L826">        ServiceResult serviceResult = new ServiceResult();</span>
+        try{
+<span class="nc" id="L828">            List&lt;Student&gt; list = repository.getStudentOfClass(year, classCode);</span>
+<span class="nc" id="L829">            List&lt;Map&lt;String, Object&gt;&gt; listStudentEvaluated = gradebookSubjectsDetailsRepository.listStudentOfClassEvaluated(year, classCode, semester, subjectCode);</span>
+<span class="nc" id="L830">            List&lt;Map&lt;String, Object&gt;&gt; listOutput = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L831" title="All 2 branches missed.">            for(int i = 0; i &lt; list.size(); i++){</span>
+<span class="nc" id="L832">                Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L833">                output.put(&quot;code&quot;, list.get(i).getCode());</span>
+<span class="nc" id="L834">                output.put(&quot;fullName&quot;, list.get(i).getFullName());</span>
+<span class="nc" id="L835">                output.put(&quot;isEvaluated&quot;, 0);</span>
+<span class="nc" id="L836">                output.put(&quot;evaluate&quot;, null);</span>
+<span class="nc bnc" id="L837" title="All 2 branches missed.">                for(int j = 0;j &lt; listStudentEvaluated.size(); j++){</span>
+<span class="nc bnc" id="L838" title="All 2 branches missed.">                    if(list.get(i).getCode().equals(listStudentEvaluated.get(j).get(&quot;code&quot;).toString())){</span>
+<span class="nc" id="L839">                        output.put(&quot;isEvaluated&quot;, 1);</span>
+<span class="nc bnc" id="L840" title="All 2 branches missed.">                        if(listStudentEvaluated.get(j).get(&quot;evaluate&quot;).equals(null)){</span>
+<span class="nc" id="L841">                            output.put(&quot;isEvaluated&quot;, 0);</span>
+                        }else{
+<span class="nc bnc" id="L843" title="All 2 branches missed.">                            if(listStudentEvaluated.get(j).get(&quot;evaluate&quot;).toString().trim().equals(&quot;&quot;)){</span>
+<span class="nc" id="L844">                                output.put(&quot;isEvaluated&quot;, 0);</span>
+                            }else{
+<span class="nc" id="L846">                                output.put(&quot;evaluate&quot;, listStudentEvaluated.get(j).get(&quot;evaluate&quot;));</span>
+                            }
+                        }
+<span class="nc" id="L849">                        break;</span>
+                    }
+                }
+<span class="nc" id="L852">                listOutput.add(output);</span>
+            }
+<span class="nc" id="L854">            serviceResult.setData(listOutput);</span>
+<span class="nc" id="L855">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L856">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L857">        }catch (Exception e){</span>
+<span class="nc" id="L858">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L859">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L860">        }</span>
+<span class="nc" id="L861">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Student&gt;&gt; getStudentOfClassScreenDanhGiaHocLuc(String year, String classCode) {
+<span class="fc" id="L866">        ServiceResult serviceResult = new ServiceResult();</span>
+        try{
+<span class="fc" id="L868">            List&lt;Student&gt; list = repository.getStudentOfClassManDanhGiaHocLuc(year, classCode);</span>
+<span class="fc" id="L869">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L870">            output.put(&quot;data&quot;, list);</span>
+<span class="fc" id="L871">            serviceResult.setData(output);</span>
+<span class="fc" id="L872">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="fc" id="L873">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="fc" id="L874">        }catch (Exception e){</span>
+<span class="fc" id="L875">            serviceResult.setMessage(&quot;failed&quot;);</span>
+<span class="fc" id="L876">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="fc" id="L877">        }</span>
+<span class="fc" id="L878">        return serviceResult;</span>
+    }
+
+    public ServiceResult&lt;List&lt;StudentDetailInformationVo&gt;&gt; getStudentDetailInformation(String student_code, String year) {
+<span class="nc" id="L882">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Student information&quot;, repository.getStudentDetailInformation(student_code, year, PageRequest.of(0, 1)));        </span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Student&gt;&gt; getStudentManagedByClass(String classCode, String year) {
+<span class="nc" id="L887">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;students&quot;, repository.getCurrentStudentsInClass(classCode, year));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getAllYearHistoryOfStudent(String studentCode) {
+        try {
+<span class="nc" id="L893">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, repository.getAllYearHistoryOfStudent(studentCode));</span>
+<span class="nc" id="L894">        }catch (Exception e){</span>
+<span class="nc" id="L895">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;fail&quot;, null);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getResultStudyEver(String classCode, String year, String studentCode, Integer classId) {
+        try {
+<span class="nc" id="L902">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, repository.getResultStudyEver(classCode, year, studentCode, classId));</span>
+<span class="nc" id="L903">        }catch (Exception e){</span>
+<span class="nc" id="L904">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Có lỗi xảy ra&quot;, null);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;StudentDetailInformationVo&gt;&gt; getStudentDetailInformationSideParent(String studentCode, String year) {
+        try {
+<span class="nc" id="L911">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, repository.getStudentDetailInformationSideParent(studentCode, year,PageRequest.of(0, 1)));</span>
+<span class="nc" id="L912">        }catch (Exception e){</span>
+<span class="nc" id="L913">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Lấy thông tin học sinh thất bại&quot;, null);</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

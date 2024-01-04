@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AttendanceServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">AttendanceServiceImpl.java</span></div><h1>AttendanceServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import fpt.capstone.entities.AttendanceStudent;
+import fpt.capstone.entities.AttendanceStudentDetail;
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.entities.Student;
+import fpt.capstone.form_data.UpdateAttendanceDTO;
+import fpt.capstone.payroll.ValidationException;
+import fpt.capstone.repository.ApParamRepository;
+import fpt.capstone.repository.AttendanceStudentDetailRepository;
+import fpt.capstone.repository.AttendanceStudentRepository;
+import fpt.capstone.repository.SchoolYearRespository;
+import fpt.capstone.repository.StudentRepository;
+import fpt.capstone.vo.StudentAttendanceVo;
+
+@Service
+@Transactional
+<span class="fc" id="L37">public class AttendanceServiceImpl implements AttendanceService {</span>
+
+    @Autowired
+    AttendanceStudentDetailRepository detailRepository;
+
+    @Autowired
+    AttendanceStudentRepository attendanceStudentRepository;
+
+    @Autowired
+    StudentRepository studentRepository;
+
+    @Autowired
+    SchoolYearRespository schoolYearRespository;
+
+    @Autowired
+    ApParamRepository apParamRepository;
+
+    @Override
+    public ServiceResult&lt;List&lt;AttendanceStudentDetail&gt;&gt; getAttendance(String month, String year, String classCode) {
+<span class="nc" id="L56">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;attendance&quot;, detailRepository.getAttendance(month, year, classCode));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; updateAttendace(UpdateAttendanceDTO form) {
+<span class="nc" id="L61">        form.getAttendances().stream().forEach((a) -&gt; {</span>
+
+<span class="nc" id="L63">            Optional&lt;AttendanceStudentDetail&gt; detail = detailRepository.getAttendanceByDate(a.getCode(),</span>
+<span class="nc" id="L64">                    LocalDate.parse(a.getDate()));</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">            if (detail.isPresent()) {</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">                if (!detail.get().getCheckDate().equals(a.getCheckDate())) {</span>
+<span class="nc" id="L67">                    detailRepository.updateAttendace(detail.get().getId(), a.getCheckDate());</span>
+                }
+
+<span class="nc" id="L70">                return;</span>
+            }
+<span class="nc" id="L72">            Student student = studentRepository.getByCode(a.getCode())</span>
+<span class="nc" id="L73">                    .orElseThrow(() -&gt; new ValidationException(&quot;code&quot;, &quot;Code không tồn tại&quot;));</span>
+
+<span class="nc" id="L75">            Date attendanceDate = null;</span>
+            try {
+<span class="nc" id="L77">                attendanceDate = (new SimpleDateFormat(&quot;yyyy-MM-dd&quot;)).parse(a.getDate());</span>
+<span class="nc" id="L78">            } catch (ParseException e) {</span>
+<span class="nc" id="L79">                throw new ValidationException(&quot;date&quot;, &quot;ngày điểm danh không hợp lệ&quot;);</span>
+<span class="nc" id="L80">            }</span>
+<span class="nc" id="L81">            Integer month = attendanceDate.getMonth() + 1;</span>
+
+<span class="nc" id="L83">            String semester = schoolYearRespository</span>
+<span class="nc" id="L84">                    .getSemester(attendanceDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime())</span>
+<span class="nc" id="L85">                    .orElseThrow(() -&gt; new ValidationException(&quot;semester&quot;, &quot;Kì học không tồn tại&quot;));</span>
+<span class="nc" id="L86">            Optional&lt;String&gt; parentCodeOptional = attendanceStudentRepository.getCode(form.getYear(), semester,</span>
+<span class="nc" id="L87">                    Integer.toString(month));</span>
+<span class="nc" id="L88">            String parentCode = null;</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">            if (parentCodeOptional.isPresent()) {</span>
+<span class="nc" id="L90">                parentCode = parentCodeOptional.get();</span>
+            } else {
+<span class="nc" id="L92">                parentCode = &quot;AS_&quot; + Long.toString((new Date()).getTime());</span>
+<span class="nc" id="L93">                List&lt;AttendanceStudent&gt; temp = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L94">                temp.add(new AttendanceStudent(1000, parentCode, form.getYear(), semester, String.valueOf(month)));</span>
+<span class="nc" id="L95">                attendanceStudentRepository.saveAll(temp);</span>
+            }
+<span class="nc" id="L97">            String holiday = apParamRepository.getHoliday().orElse(&quot;&quot;);</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            if (holiday.indexOf(a.getDate()) != -1) {</span>
+<span class="nc" id="L99">                throw new ValidationException(&quot;date&quot;, &quot;Không được điểm danh ngày nghỉ&quot;);</span>
+            }
+<span class="nc" id="L101">            Calendar c = Calendar.getInstance();</span>
+<span class="nc" id="L102">            c.setTime(attendanceDate);</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">            if (c.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) {</span>
+<span class="nc" id="L104">                throw new ValidationException(&quot;date&quot;, &quot;Không được điểm danh ngày nghỉ&quot;);</span>
+            }
+
+<span class="nc" id="L107">            List&lt;AttendanceStudentDetail&gt; temp = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L108">            temp.add(new AttendanceStudentDetail(100, a.getCode(), student.getFullName(), a.getCheckDate(), parentCode,</span>
+<span class="nc" id="L109">                    attendanceDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()));</span>
+<span class="nc" id="L110">            detailRepository.saveAll(temp);</span>
+<span class="nc" id="L111">        });</span>
+<span class="nc" id="L112">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;updated&quot;, true);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;StudentAttendanceVo&gt;&gt; getStudentAttendance(String year, String month,
+            String studentCode) {
+
+<span class="nc" id="L119">        List&lt;StudentAttendanceVo&gt; results = new ArrayList();</span>
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        for(java.util.Map&lt;String, Object&gt; result: detailRepository.getStudentAttendance(year, month, studentCode))</span>
+        {
+<span class="nc" id="L123">            java.sql.Date date = (java.sql.Date) (result.get(&quot;AttendanceDate&quot;));</span>
+<span class="nc" id="L124">            String checkDate = (String) (result.get(&quot;checkDate&quot;));</span>
+<span class="nc" id="L125">            results.add(new StudentAttendanceVo(checkDate, date.toLocalDate()));</span>
+<span class="nc" id="L126">        }</span>
+
+<span class="nc" id="L128">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Success&quot;, results);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

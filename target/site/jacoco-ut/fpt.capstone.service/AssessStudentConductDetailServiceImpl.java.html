@@ -1,0 +1,560 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AssessStudentConductDetailServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">AssessStudentConductDetailServiceImpl.java</span></div><h1>AssessStudentConductDetailServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.entities.AssessStudentConduct;
+import fpt.capstone.entities.AssessStudentConductDetail;
+import fpt.capstone.entities.SchoolYear;
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.form_data.AssessStudentConductDetailForm;
+import fpt.capstone.repository.*;
+import fpt.capstone.security.services.UserDetailsImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Service
+@Transactional
+<span class="fc" id="L25">public class AssessStudentConductDetailServiceImpl implements AssessStudentConductDetailService{</span>
+    @Autowired
+    AssessStudentConductDetailRepository assessStudentConductDetailRepository;
+    @Autowired
+    AssessStudentConductRepository assessStudentConductRepository;
+    @Autowired
+    SchoolYearRespository schoolYearRespository;
+    @Autowired
+    GradebookRepository gradebookRepository;
+    @Autowired
+    StudentRepository studentRepository;
+    @Autowired
+    AttendanceStudentRepository attendanceStudentRepository;
+
+    @Override
+    public ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getInfoConductOfClass(Integer semester, String year, Integer teacherId, String classCode) {
+<span class="nc" id="L41">        ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; serviceResult = new ServiceResult();</span>
+        try{
+<span class="nc bnc" id="L43" title="All 2 branches missed.">            if(gradebookRepository.checkExistGradeBook(year,semester,classCode)){</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">                if(semester == 0){</span>
+<span class="nc" id="L45">                    List&lt;Map&lt;String, Object&gt;&gt; output = assessStudentConductDetailRepository.getConductOfClassByAllStudyYear(year, classCode);</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">                    if(output.size() == 0){</span>
+<span class="nc" id="L47">                        serviceResult.setMessage(&quot;Lớp này không có học sinh nào&quot;);</span>
+<span class="nc" id="L48">                        serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L49">                        return serviceResult;</span>
+                    }else {
+<span class="nc" id="L51">                        List&lt;Map&lt;String, Object&gt;&gt; listEnough = new ArrayList&lt;&gt;();</span>
+                        //check kỳ 1 và 2 đã được đánh giá chưa
+<span class="nc" id="L53">                        int amountOfSemester = schoolYearRespository.getSemesterAmount(year);</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">                        if(amountOfSemester == 2){</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">                            for (Map&lt;String, Object&gt; m : output){</span>
+<span class="nc" id="L56">                                int enough = 0;</span>
+<span class="nc" id="L57">                                List&lt;Map&lt;String, Object&gt;&gt; semester1 = assessStudentConductDetailRepository.getEvaluateAndCompetitionBySemester(m.get(&quot;student_code&quot;).toString(), 1, year);</span>
+<span class="nc" id="L58">                                List&lt;Map&lt;String, Object&gt;&gt; semester2 = assessStudentConductDetailRepository.getEvaluateAndCompetitionBySemester(m.get(&quot;student_code&quot;).toString(), 2, year);</span>
+<span class="nc bnc" id="L59" title="All 4 branches missed.">                                if(semester1.size() != 0 &amp;&amp; semester2.size() != 0){</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">                                    if(semester1.get(0).get(&quot;conduct&quot;) != null</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">                                    &amp;&amp; !semester1.get(0).get(&quot;conduct&quot;).toString().trim().equals(&quot;&quot;)</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                                    &amp;&amp; semester1.get(0).get(&quot;competition_title&quot;) != null</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">                                    &amp;&amp; !semester1.get(0).get(&quot;competition_title&quot;).toString().trim().equals(&quot;&quot;)</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">                                    &amp;&amp; semester2.get(0).get(&quot;conduct&quot;) != null</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">                                    &amp;&amp; !semester2.get(0).get(&quot;conduct&quot;).toString().trim().equals(&quot;&quot;)</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">                                    &amp;&amp; semester2.get(0).get(&quot;competition_title&quot;) != null</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">                                    &amp;&amp; !semester2.get(0).get(&quot;competition_title&quot;).toString().trim().equals(&quot;&quot;)){</span>
+<span class="nc" id="L68">                                        enough = 1;</span>
+                                    }
+                                }
+<span class="nc" id="L71">                                Map&lt;String, Object&gt; newMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L72">                                newMap.put(&quot;id&quot;, m.get(&quot;id&quot;));</span>
+<span class="nc" id="L73">                                newMap.put(&quot;full_name&quot;, m.get(&quot;full_name&quot;));</span>
+<span class="nc" id="L74">                                newMap.put(&quot;student_code&quot;, m.get(&quot;student_code&quot;));</span>
+<span class="nc" id="L75">                                newMap.put(&quot;number_off&quot;, m.get(&quot;number_off&quot;));</span>
+<span class="nc" id="L76">                                newMap.put(&quot;number_off_allowed&quot;, m.get(&quot;number_off_allowed&quot;));</span>
+<span class="nc" id="L77">                                newMap.put(&quot;academic_ability&quot;, m.get(&quot;academic_ability&quot;));</span>
+<span class="nc" id="L78">                                newMap.put(&quot;conduct&quot;, m.get(&quot;conduct&quot;));</span>
+<span class="nc" id="L79">                                newMap.put(&quot;competition_title&quot;, m.get(&quot;competition_title&quot;));</span>
+<span class="nc" id="L80">                                newMap.put(&quot;evaluate&quot;, m.get(&quot;evaluate&quot;));</span>
+<span class="nc" id="L81">                                newMap.put(&quot;parent_code&quot;, m.get(&quot;parent_code&quot;));</span>
+<span class="nc" id="L82">                                newMap.put(&quot;enough&quot;, enough);</span>
+<span class="nc" id="L83">                                listEnough.add(newMap);</span>
+<span class="nc" id="L84">                            }</span>
+                        }
+
+<span class="nc" id="L87">                        serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L88">                        serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L89">                        serviceResult.setData(listEnough);</span>
+                    }
+<span class="nc" id="L91">                }else{</span>
+<span class="nc" id="L92">                    List&lt;Map&lt;String, Object&gt;&gt; output = assessStudentConductDetailRepository.getInfoConductOfClass(semester, year, classCode);</span>
+//                    List&lt;Map&lt;String, Object&gt;&gt; newList = new ArrayList&lt;&gt;();
+//                    if(output.size() == 0){
+//                        output = assessStudentConductDetailRepository.getInfoConductOfClassNotYet(classCode ,year,semester);
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                        if(output.size() == 0){</span>
+<span class="nc" id="L97">                            serviceResult.setMessage(&quot;Lớp này không có học sinh nào&quot;);</span>
+<span class="nc" id="L98">                            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L99">                            return serviceResult;</span>
+                        }
+//                        for (Map&lt;String, Object&gt; m : output){
+//                            Map&lt;String, Object&gt; newMap = new HashMap&lt;&gt;();
+//                            if()
+//                            newMap.put(&quot;full_name&quot;, m.get(&quot;full_name&quot;));
+//                            newMap.put(&quot;student_code&quot;, m.get(&quot;student_code&quot;));
+//                            newMap.put(&quot;number_off&quot;, m.get(&quot;number_off&quot;));
+//                            newMap.put(&quot;number_off_allowed&quot;, m.get(&quot;number_off_allowed&quot;));
+//                            newMap.put(&quot;academic_ability&quot;, m.get(&quot;academic_ability&quot;));
+//                            newMap.put(&quot;conduct&quot;, null);
+//                            newMap.put(&quot;competition_title&quot;, null);
+//                            newMap.put(&quot;evaluate&quot;, m.get(&quot;evaluate&quot;));
+//                            newList.add(newMap);
+//                        }
+<span class="nc" id="L114">                        serviceResult.setData(output);</span>
+//                    }else{
+//                        serviceResult.setData(output);
+//                    }
+                }
+<span class="nc" id="L119">                serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L120">                serviceResult.setStatus(HttpStatus.OK);</span>
+            }else{
+<span class="nc bnc" id="L122" title="All 2 branches missed.">                String semes = semester == 0 ? &quot;cả năm&quot; : semester + &quot;&quot;;</span>
+<span class="nc" id="L123">                serviceResult.setMessage(&quot;Kỳ học &quot; + semes + &quot; của năm học &quot; + year +&quot; chưa được cấu hình điểm&quot;);</span>
+<span class="nc" id="L124">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+            }
+<span class="nc" id="L126">        }catch (Exception e){</span>
+<span class="nc" id="L127">            serviceResult.setMessage(&quot;Tìm kiếm thất bại&quot;);</span>
+<span class="nc" id="L128">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L129">        }</span>
+<span class="nc" id="L130">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getEvaluateOfTeacher(Integer semester, String year, String studentCode, String classCode) {
+<span class="nc" id="L135">        ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; serviceResult = new ServiceResult();</span>
+        try{
+<span class="nc" id="L137">            List&lt;Map&lt;String, Object&gt;&gt; output = assessStudentConductDetailRepository.getEvaluateOfTeacher(semester, year, studentCode, classCode);</span>
+<span class="nc" id="L138">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L139">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L140">            serviceResult.setData(output);</span>
+<span class="nc" id="L141">        }catch (Exception e){</span>
+<span class="nc" id="L142">            serviceResult.setMessage(&quot;Có lỗi xảy ra&quot;);</span>
+<span class="nc" id="L143">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L144">        }</span>
+<span class="nc" id="L145">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; updateAssessStudentConductDetail(List&lt;AssessStudentConductDetailForm&gt; list, String classCode, Integer semester, String schoolYear) {
+<span class="nc" id="L150">        ServiceResult serviceResult = new ServiceResult();</span>
+        try{
+<span class="nc" id="L152">            List&lt;AssessStudentConductDetail&gt; listSave = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L154">            List&lt;AssessStudentConductDetailForm&gt; listOld = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L155">            List&lt;AssessStudentConductDetailForm&gt; listNew = new ArrayList&lt;&gt;();</span>
+            //phân loại cũ và mới
+<span class="nc bnc" id="L157" title="All 2 branches missed.">            for (AssessStudentConductDetailForm a: list){</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">                if(a.getId() == null){</span>
+<span class="nc" id="L159">                    listNew.add(a);</span>
+                }else{
+<span class="nc" id="L161">                    listOld.add(a);</span>
+                }
+<span class="nc" id="L163">            }</span>
+
+            //Lấy ra list đã từng được đánh giá hạnh kiểm
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            for(AssessStudentConductDetailForm a : listOld){</span>
+<span class="nc" id="L167">                AssessStudentConductDetail data = new AssessStudentConductDetail();</span>
+<span class="nc" id="L168">                data.setId(a.getId());</span>
+<span class="nc" id="L169">                data.setStudent_code(a.getStudent_code());</span>
+<span class="nc" id="L170">                data.setNumber_off(a.getNumber_off());</span>
+<span class="nc" id="L171">                data.setNumber_off_allowed(a.getNumber_off_allowed());</span>
+<span class="nc" id="L172">                data.setAcademic_ability(a.getAcademic_ability());</span>
+<span class="nc" id="L173">                data.setConduct(a.getConduct());</span>
+<span class="nc" id="L174">                data.setCompetition_title(a.getCompetition_title());</span>
+<span class="nc" id="L175">                data.setParent_code(a.getParent_code());</span>
+<span class="nc" id="L176">                listSave.add(data);</span>
+<span class="nc" id="L177">            }</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">            if(listOld.size() &gt; 0){</span>
+                //update lại listOld vào db
+<span class="nc" id="L180">                assessStudentConductDetailRepository.saveAll(listSave);</span>
+<span class="nc" id="L181">                listSave = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">                if(listNew.size() &gt; 0){</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">                    for (AssessStudentConductDetailForm a : listNew){</span>
+<span class="nc" id="L184">                        AssessStudentConductDetail data = new AssessStudentConductDetail();</span>
+<span class="nc" id="L185">                        data.setStudent_code(a.getStudent_code());</span>
+<span class="nc" id="L186">                        data.setNumber_off(a.getNumber_off());</span>
+<span class="nc" id="L187">                        data.setNumber_off_allowed(a.getNumber_off_allowed());</span>
+<span class="nc" id="L188">                        data.setAcademic_ability(a.getAcademic_ability());</span>
+<span class="nc" id="L189">                        data.setConduct(a.getConduct());</span>
+<span class="nc" id="L190">                        data.setCompetition_title(a.getCompetition_title());</span>
+<span class="nc" id="L191">                        data.setParent_code(listOld.get(0).getParent_code());</span>
+<span class="nc" id="L192">                        listSave.add(data);</span>
+<span class="nc" id="L193">                    }</span>
+<span class="nc" id="L194">                    assessStudentConductDetailRepository.saveAll(listSave);</span>
+                }
+            }else{
+                // nghĩa là lớp này chưa từng được đánh giá hạnh kiểm
+<span class="nc" id="L198">                AssessStudentConduct asc = new AssessStudentConduct();</span>
+<span class="nc" id="L199">                asc.setClass_code(classCode);</span>
+<span class="nc" id="L200">                asc.setSemester(semester);</span>
+<span class="nc" id="L201">                asc.setSchool_year(schoolYear);</span>
+<span class="nc" id="L202">                asc.setCreate_date(LocalDateTime.now());</span>
+<span class="nc" id="L203">                Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="nc" id="L204">                UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();</span>
+<span class="nc" id="L205">                asc.setCreator(userDetails.getUsername());</span>
+<span class="nc" id="L206">                Date now = new Date();</span>
+<span class="nc" id="L207">                Timestamp timestamp = new Timestamp(now.getTime());</span>
+<span class="nc" id="L208">                String code = &quot;AS_&quot; + timestamp.getTime();</span>
+<span class="nc" id="L209">                asc.setCode(code);</span>
+<span class="nc" id="L210">                asc = assessStudentConductRepository.save(asc);</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">                for(AssessStudentConductDetailForm a : listNew){</span>
+<span class="nc" id="L212">                    AssessStudentConductDetail data = new AssessStudentConductDetail();</span>
+<span class="nc" id="L213">                    data.setStudent_code(a.getStudent_code());</span>
+<span class="nc" id="L214">                    data.setNumber_off(a.getNumber_off());</span>
+<span class="nc" id="L215">                    data.setNumber_off_allowed(a.getNumber_off_allowed());</span>
+<span class="nc" id="L216">                    data.setAcademic_ability(a.getAcademic_ability());</span>
+<span class="nc" id="L217">                    data.setConduct(a.getConduct());</span>
+<span class="nc" id="L218">                    data.setCompetition_title(a.getCompetition_title());</span>
+<span class="nc" id="L219">                    data.setParent_code(asc.getCode());</span>
+<span class="nc" id="L220">                    listSave.add(data);</span>
+<span class="nc" id="L221">                }</span>
+<span class="nc" id="L222">                assessStudentConductDetailRepository.saveAll(listSave);</span>
+            }
+<span class="nc" id="L224">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L225">            serviceResult.setMessage(&quot;Cập nhật thành công&quot;);</span>
+<span class="nc" id="L226">            serviceResult.setData(true);</span>
+<span class="nc" id="L227">        }catch (Exception e){</span>
+<span class="nc" id="L228">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L229">            serviceResult.setMessage(&quot;Cập nhật thất bại&quot;);</span>
+<span class="nc" id="L230">            serviceResult.setData(false);</span>
+<span class="nc" id="L231">        }</span>
+<span class="nc" id="L232">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getReportTheResultOfCompetition(String year, Integer deptId, Integer gradeLevel, String classCode, Integer semester) {
+<span class="nc" id="L237">        ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; serviceResult = new ServiceResult();</span>
+        try{
+<span class="nc" id="L239">            List&lt;Map&lt;String, Object&gt;&gt; list = assessStudentConductDetailRepository.getReportTheResultOfCompetition(gradeLevel,deptId,semester,classCode,year);</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">            if(list.size() != 0){</span>
+<span class="nc" id="L241">                int dept = (int) list.get(0).get(&quot;deptId&quot;);</span>
+<span class="nc" id="L242">                Map&lt;String, Object&gt; object = list.get(0);</span>
+<span class="nc" id="L243">                List&lt;Map&lt;String, Object&gt;&gt; newList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L244">                Map&lt;String, Object&gt; addRecord = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L245">                addRecord.put(&quot;className&quot;, object.get(&quot;deptName&quot;));</span>
+<span class="nc" id="L246">                addRecord.put(&quot;excellent&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L247">                addRecord.put(&quot;good&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L248">                addRecord.put(&quot;medium&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L249">                addRecord.put(&quot;weak&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L250">                addRecord.put(&quot;total&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L251">                List&lt;Map&lt;String, Object&gt;&gt; listTemp = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L252">                int stt = 2;</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">                for (int i = 0; i &lt; list.size(); i++){</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">                    if(dept == (int) list.get(i).get(&quot;deptId&quot;)){</span>
+<span class="nc" id="L255">                        addRecord.put(&quot;excellent&quot;,((BigDecimal) addRecord.get(&quot;excellent&quot;)).add((BigDecimal) list.get(i).get(&quot;excellent&quot;)));</span>
+<span class="nc" id="L256">                        addRecord.put(&quot;good&quot;, ((BigDecimal)addRecord.get(&quot;good&quot;)).add((BigDecimal) list.get(i).get(&quot;good&quot;)));</span>
+<span class="nc" id="L257">                        addRecord.put(&quot;medium&quot;,((BigDecimal) addRecord.get(&quot;medium&quot;)).add((BigDecimal) list.get(i).get(&quot;medium&quot;)));</span>
+<span class="nc" id="L258">                        addRecord.put(&quot;weak&quot;, ((BigDecimal) addRecord.get(&quot;weak&quot;)).add((BigDecimal) list.get(i).get(&quot;weak&quot;)));</span>
+<span class="nc" id="L259">                        addRecord.put(&quot;total&quot;,((BigDecimal) addRecord.get(&quot;total&quot;)).add((BigDecimal) list.get(i).get(&quot;excellent&quot;)).add((BigDecimal) list.get(i).get(&quot;good&quot;)).add((BigDecimal) list.get(i).get(&quot;medium&quot;)).add((BigDecimal) list.get(i).get(&quot;weak&quot;)));</span>
+
+<span class="nc" id="L261">                        Map&lt;String, Object&gt; oldItem = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L262">                        oldItem.put(&quot;className&quot;, list.get(i).get(&quot;className&quot;));</span>
+<span class="nc" id="L263">                        oldItem.put(&quot;classCode&quot;, list.get(i).get(&quot;classCode&quot;));</span>
+<span class="nc" id="L264">                        oldItem.put(&quot;deptId&quot;, list.get(i).get(&quot;deptId&quot;));</span>
+<span class="nc" id="L265">                        oldItem.put(&quot;deptName&quot;, list.get(i).get(&quot;deptName&quot;));</span>
+<span class="nc" id="L266">                        oldItem.put(&quot;excellent&quot;, list.get(i).get(&quot;excellent&quot;));</span>
+<span class="nc" id="L267">                        oldItem.put(&quot;good&quot;, list.get(i).get(&quot;good&quot;));</span>
+<span class="nc" id="L268">                        oldItem.put(&quot;gradeLevel&quot;, list.get(i).get(&quot;gradeLevel&quot;));</span>
+<span class="nc" id="L269">                        oldItem.put(&quot;medium&quot;, list.get(i).get(&quot;medium&quot;));</span>
+<span class="nc" id="L270">                        oldItem.put(&quot;semester&quot;, list.get(i).get(&quot;semester&quot;));</span>
+<span class="nc" id="L271">                        oldItem.put(&quot;teacherName&quot;, list.get(i).get(&quot;teacherName&quot;));</span>
+<span class="nc" id="L272">                        oldItem.put(&quot;weak&quot;, list.get(i).get(&quot;weak&quot;));</span>
+<span class="nc" id="L273">                        oldItem.put(&quot;stt&quot;, stt++);</span>
+
+<span class="nc" id="L275">                        listTemp.add(oldItem);</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">                        if(i + 1 == list.size()){</span>
+<span class="nc" id="L277">                            addRecord.put(&quot;stt&quot;, stt - listTemp.size() - 1);</span>
+<span class="nc" id="L278">                            addRecord.put(&quot;subResult&quot;, listTemp);</span>
+<span class="nc" id="L279">                            newList.add(addRecord);</span>
+                        }
+<span class="nc" id="L281">                    }else{</span>
+<span class="nc" id="L282">                        addRecord.put(&quot;stt&quot;, stt++ - listTemp.size() - 1);</span>
+<span class="nc" id="L283">                        addRecord.put(&quot;subResult&quot;, listTemp);</span>
+<span class="nc" id="L284">                        listTemp = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L285">                        newList.add(addRecord);</span>
+<span class="nc" id="L286">                        addRecord = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L287">                        object = list.get(i);</span>
+<span class="nc" id="L288">                        addRecord.put(&quot;className&quot;, object.get(&quot;deptName&quot;));</span>
+<span class="nc" id="L289">                        addRecord.put(&quot;excellent&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L290">                        addRecord.put(&quot;good&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L291">                        addRecord.put(&quot;medium&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L292">                        addRecord.put(&quot;weak&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L293">                        addRecord.put(&quot;total&quot;, new BigDecimal(0));</span>
+<span class="nc" id="L294">                        dept = (int) list.get(i).get(&quot;deptId&quot;);</span>
+<span class="nc" id="L295">                        i--;</span>
+                    }
+                }
+<span class="nc" id="L298">                serviceResult.setData(newList);</span>
+<span class="nc" id="L299">            }else{</span>
+<span class="nc" id="L300">                serviceResult.setData(list);</span>
+            }
+<span class="nc" id="L302">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L303">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L304">        }catch (Exception e){</span>
+<span class="nc" id="L305">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L306">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L307">        }</span>
+<span class="nc" id="L308">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getReportTheResultOfEachClass(String year, String classCode, Integer semester) {
+<span class="nc" id="L313">        ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; serviceResult = new ServiceResult();</span>
+        try{
+<span class="nc bnc" id="L315" title="All 2 branches missed.">            if(studentRepository.getAmountOfStudentByClassCodeAndYear(classCode, year) == 0){</span>
+<span class="nc" id="L316">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L317">                serviceResult.setMessage(&quot;Lớp này chưa có học sinh nào&quot;);</span>
+<span class="nc" id="L318">                return serviceResult;</span>
+            }
+<span class="nc" id="L320">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L321">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L322">            List&lt;Map&lt;String, Object&gt;&gt; list = assessStudentConductDetailRepository.getReportTheResultOfEachClass(year, classCode, semester);</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">            if(list.size() != 0){</span>
+<span class="nc" id="L324">                String studentCode = list.get(0).get(&quot;studentCode&quot;).toString().trim();</span>
+<span class="nc" id="L325">                List&lt;Map&lt;String, Object&gt;&gt; newList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L326">                Set&lt;String&gt; set = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L327">                Hashtable&lt;String, Integer&gt; htCoefficient = new Hashtable&lt;&gt;();</span>
+                //set này chứa danh sách những môn học
+<span class="nc" id="L329">                Map&lt;String, Object&gt; object = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L330" title="All 2 branches missed.">                for (int i = 0; i &lt; list.size(); i++){</span>
+<span class="nc bnc" id="L331" title="All 2 branches missed.">                    if(studentCode.equals(list.get(i).get(&quot;studentCode&quot;).toString().trim())){</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">                        if(object.get(&quot;studentCode&quot;) == null){</span>
+<span class="nc" id="L333">                            object.put(&quot;studentCode&quot;, list.get(i).get(&quot;studentCode&quot;));</span>
+<span class="nc" id="L334">                            object.put(&quot;studentName&quot;, list.get(i).get(&quot;studentName&quot;));</span>
+<span class="nc" id="L335">                            List&lt;Map&lt;String, Object&gt;&gt; getPandK = attendanceStudentRepository.getPandKbyYearAndSemesterAndStudentCode(year, semester, studentCode);</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">                            if(getPandK.get(0).get(&quot;number_off&quot;) != null){</span>
+<span class="nc" id="L337">                                object.put(&quot;number_off&quot;, getPandK.get(0).get(&quot;number_off&quot;));</span>
+                            }else{
+<span class="nc" id="L339">                                object.put(&quot;number_off&quot;, 0);</span>
+                            }
+<span class="nc bnc" id="L341" title="All 2 branches missed.">                            if(getPandK.get(0).get(&quot;number_off_allowed&quot;) != null){</span>
+<span class="nc" id="L342">                                object.put(&quot;number_off_allowed&quot;, getPandK.get(0).get(&quot;number_off_allowed&quot;));</span>
+                            }else{
+<span class="nc" id="L344">                                object.put(&quot;number_off_allowed&quot;, 0);</span>
+                            }
+                        }
+<span class="nc bnc" id="L347" title="All 4 branches missed.">                        if(list.get(i).get(&quot;academic_ability&quot;) == null || list.get(i).get(&quot;academic_ability&quot;).toString().trim().equals(&quot;&quot;)){</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">                            if(object.get(&quot;academic_ability&quot;) == null){</span>
+<span class="nc" id="L349">                                object.put(&quot;academic_ability&quot;, null);</span>
+                            }
+                        }else{
+<span class="nc" id="L352">                            object.put(&quot;academic_ability&quot;, list.get(i).get(&quot;academic_ability&quot;));</span>
+                        }
+<span class="nc bnc" id="L354" title="All 4 branches missed.">                        if(list.get(i).get(&quot;conduct&quot;) == null || list.get(i).get(&quot;conduct&quot;).toString().trim().equals(&quot;&quot;)){</span>
+<span class="nc bnc" id="L355" title="All 2 branches missed.">                            if(object.get(&quot;conduct&quot;) == null){</span>
+<span class="nc" id="L356">                                object.put(&quot;conduct&quot;, null);</span>
+                            }
+                        }else{
+<span class="nc" id="L359">                            object.put(&quot;conduct&quot;, list.get(i).get(&quot;conduct&quot;));</span>
+                        }
+//                        if(list.get(i).get(&quot;number_off&quot;) == null || list.get(i).get(&quot;number_off&quot;).toString().trim().equals(&quot;&quot;)){
+//                            if(object.get(&quot;number_off&quot;) == null){
+//                                object.put(&quot;number_off&quot;, null);
+//                            }
+//                        }else{
+//                            object.put(&quot;number_off&quot;, list.get(i).get(&quot;number_off&quot;));
+//                        }
+//
+//                        if(list.get(i).get(&quot;number_off_allowed&quot;) == null || list.get(i).get(&quot;number_off_allowed&quot;).toString().trim().equals(&quot;&quot;)){
+//                            if(object.get(&quot;number_off_allowed&quot;) == null){
+//                                object.put(&quot;number_off_allowed&quot;, null);
+//                            }
+//                        }else{
+//                            object.put(&quot;number_off_allowed&quot;, list.get(i).get(&quot;number_off_allowed&quot;));
+//                        }
+
+<span class="nc bnc" id="L377" title="All 4 branches missed.">                        if(list.get(i).get(&quot;competition_title&quot;) == null || list.get(i).get(&quot;competition_title&quot;).toString().trim().equals(&quot;&quot;)){</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">                            if(object.get(&quot;competition_title&quot;) == null){</span>
+<span class="nc" id="L379">                                object.put(&quot;competition_title&quot;, null);</span>
+                            }
+                        }else{
+<span class="nc" id="L382">                            object.put(&quot;competition_title&quot;, list.get(i).get(&quot;competition_title&quot;));</span>
+                        }
+<span class="nc" id="L384">                        object.put(list.get(i).get(&quot;subjectName&quot;).toString(), list.get(i).get(&quot;avg_score&quot;));</span>
+<span class="nc" id="L385">                        set.add(list.get(i).get(&quot;subjectName&quot;).toString());</span>
+<span class="nc" id="L386">                        htCoefficient.put(list.get(i).get(&quot;subjectName&quot;).toString(), Integer.parseInt(list.get(i).get(&quot;coefficient&quot;).toString()));</span>
+                        //Tính điểm trung bình cho môn cuối danh sách
+<span class="nc bnc" id="L388" title="All 2 branches missed.">                        if(i + 1 == list.size()){</span>
+<span class="nc" id="L389">                            Iterator&lt;String&gt; iterator = set.iterator();</span>
+<span class="nc" id="L390">                            double avg  = 0;</span>
+<span class="nc" id="L391">                            int counter = 0;</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">                            while (iterator.hasNext()){</span>
+<span class="nc" id="L393">                                String ite = iterator.next();</span>
+<span class="nc bnc" id="L394" title="All 2 branches missed.">                                if(object.containsKey(ite)){</span>
+                                    try{
+<span class="nc" id="L396">                                        double doub = Double.parseDouble(object.get(ite).toString());</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">                                        if(!object.get(ite).toString().trim().equals(&quot;&quot;)){</span>
+<span class="nc" id="L398">                                            avg += (doub * htCoefficient.get(ite));</span>
+<span class="nc" id="L399">                                            counter += htCoefficient.get(ite);</span>
+                                        }
+<span class="nc" id="L401">                                    }catch (Exception e){</span>
+<span class="nc" id="L402">                                    }</span>
+                                }
+<span class="nc" id="L404">                            }</span>
+<span class="nc bnc" id="L405" title="All 4 branches missed.">                            if(avg == 0 &amp;&amp; counter == 0){</span>
+<span class="nc" id="L406">                                object.put(&quot;avg&quot;, null);</span>
+                            }else{
+<span class="nc" id="L408">                                object.put(&quot;avg&quot;, String.format(&quot;%.3g%n&quot;, avg / counter));</span>
+                            }
+<span class="nc" id="L410">                            newList.add(object);</span>
+<span class="nc" id="L411">                        }</span>
+                    }else{
+                        //Tính điểm trung bình cho môn học
+<span class="nc" id="L414">                        Iterator&lt;String&gt; iterator = set.iterator();</span>
+<span class="nc" id="L415">                        double avg  = 0;</span>
+<span class="nc" id="L416">                        int counter = 0;</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">                        while (iterator.hasNext()){</span>
+<span class="nc" id="L418">                            String ite = iterator.next();</span>
+<span class="nc bnc" id="L419" title="All 2 branches missed.">                            if(object.containsKey(ite)){</span>
+                                try{
+<span class="nc" id="L421">                                    double doub = Double.parseDouble(object.get(ite).toString());</span>
+<span class="nc bnc" id="L422" title="All 2 branches missed.">                                    if(!object.get(ite).toString().trim().equals(&quot;&quot;)){</span>
+<span class="nc" id="L423">                                        avg += (doub * htCoefficient.get(ite));</span>
+<span class="nc" id="L424">                                        counter += htCoefficient.get(ite);</span>
+                                    }
+<span class="nc" id="L426">                                }catch (Exception e){</span>
+<span class="nc" id="L427">                                }</span>
+                            }
+<span class="nc" id="L429">                        }</span>
+<span class="nc bnc" id="L430" title="All 4 branches missed.">                        if(avg == 0 &amp;&amp; counter == 0){</span>
+<span class="nc" id="L431">                            object.put(&quot;avg&quot;, null);</span>
+                        }else{
+<span class="nc" id="L433">                            object.put(&quot;avg&quot;, String.format(&quot;%.3g%n&quot;, avg / counter));</span>
+                        }
+                        //
+<span class="nc" id="L436">                        newList.add(object);</span>
+<span class="nc" id="L437">                        studentCode = list.get(i).get(&quot;studentCode&quot;).toString().trim();</span>
+<span class="nc" id="L438">                        object = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L439">                        i--;</span>
+                    }
+                }
+
+<span class="nc" id="L443">                List&lt;Map&lt;String, Object&gt;&gt; output = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L444">                Map&lt;String, Object&gt; outputDesserts = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L445">                List&lt;Map&lt;String, Object&gt;&gt; sort = new ArrayList&lt;&gt;();</span>
+                //lấy ra mảng những học sinh có điểm trung bình, gắn vào mảng sort
+<span class="nc bnc" id="L447" title="All 2 branches missed.">                for (int i = 0; i &lt; newList.size(); i++){</span>
+<span class="nc bnc" id="L448" title="All 2 branches missed.">                    if(newList.get(i).get(&quot;avg&quot;) != null){</span>
+<span class="nc" id="L449">                        sort.add(newList.get(i));</span>
+                    }else{
+<span class="nc" id="L451">                        newList.get(i).put(&quot;rank&quot;, null);</span>
+                    }
+                }
+                //sort mảng sort theo avg để ra rank từng học sinh
+<span class="nc bnc" id="L455" title="All 2 branches missed.">                for (int i = 0; i &lt; sort.size() - 1; i++){</span>
+<span class="nc bnc" id="L456" title="All 2 branches missed.">                    for (int j = 0 ; j &lt; sort.size() - i - 1; j++){</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">                        if(Double.parseDouble(sort.get(j).get(&quot;avg&quot;).toString()) &lt; Double.parseDouble(sort.get(j + 1).get(&quot;avg&quot;).toString())){</span>
+<span class="nc" id="L458">                            Map&lt;String, Object&gt; temp = sort.get(j);</span>
+<span class="nc" id="L459">                            sort.set(j, sort.get(j + 1));</span>
+<span class="nc" id="L460">                            sort.set(j + 1, temp);</span>
+                        }
+                    }
+                }
+
+                //mảng chứa những phần tử index ở rank( cả trường hợp = điểm nhau )
+<span class="nc" id="L466">                int[] arrRankOfSortArray = new int[sort.size()];</span>
+<span class="nc" id="L467">                int rank = 1;</span>
+<span class="nc bnc" id="L468" title="All 2 branches missed.">                for (int i = 0; i &lt; sort.size() - 1; i++){</span>
+<span class="nc bnc" id="L469" title="All 2 branches missed.">                    if(Double.parseDouble(sort.get(i).get(&quot;avg&quot;).toString()) ==  Double.parseDouble(sort.get(i + 1).get(&quot;avg&quot;).toString())){</span>
+<span class="nc bnc" id="L470" title="All 2 branches missed.">                        if(i &gt; 0){</span>
+<span class="nc bnc" id="L471" title="All 2 branches missed.">                            if(Double.parseDouble(sort.get(i).get(&quot;avg&quot;).toString()) !=  Double.parseDouble(sort.get(i - 1).get(&quot;avg&quot;).toString())){</span>
+<span class="nc" id="L472">                                rank++;</span>
+                            }
+                        }
+<span class="nc" id="L475">                        arrRankOfSortArray[i] = rank;</span>
+                    }else{
+<span class="nc bnc" id="L477" title="All 2 branches missed.">                        if(i &gt; 0){</span>
+<span class="nc bnc" id="L478" title="All 2 branches missed.">                            if(Double.parseDouble(sort.get(i).get(&quot;avg&quot;).toString()) !=  Double.parseDouble(sort.get(i - 1).get(&quot;avg&quot;).toString())){</span>
+<span class="nc" id="L479">                                rank++;</span>
+                            }
+                        }
+<span class="nc" id="L482">                        arrRankOfSortArray[i] = rank;</span>
+                    }
+                }
+                //xử lý rank của phần tử cuối mảng
+<span class="nc bnc" id="L486" title="All 2 branches missed.">                if(sort.size() &gt;= 2){</span>
+<span class="nc bnc" id="L487" title="All 2 branches missed.">                    if(Double.parseDouble(sort.get(sort.size() - 2).get(&quot;avg&quot;).toString()) ==  Double.parseDouble(sort.get(sort.size() - 1).get(&quot;avg&quot;).toString())){</span>
+<span class="nc" id="L488">                        arrRankOfSortArray[sort.size() - 1] = arrRankOfSortArray[sort.size() - 2];</span>
+                    }else{
+<span class="nc" id="L490">                        arrRankOfSortArray[sort.size() - 1] = arrRankOfSortArray[sort.size() - 2] + 1;</span>
+                    }
+<span class="nc bnc" id="L492" title="All 2 branches missed.">                }else if(sort.size() == 1){</span>
+<span class="nc" id="L493">                    arrRankOfSortArray[0] = 1;</span>
+                }
+
+                //gán rank cho từng học sinh
+<span class="nc bnc" id="L497" title="All 2 branches missed.">                for (int i = 0; i &lt; sort.size(); i++){</span>
+<span class="nc bnc" id="L498" title="All 2 branches missed.">                    for (int j = 0; j &lt; newList.size(); j++){</span>
+<span class="nc bnc" id="L499" title="All 2 branches missed.">                        if(sort.get(i).get(&quot;studentCode&quot;).toString() == newList.get(j).get(&quot;studentCode&quot;).toString()){</span>
+<span class="nc" id="L500">                            newList.get(j).put(&quot;rank&quot;, arrRankOfSortArray[i]);</span>
+                        }
+                    }
+                }
+
+<span class="nc" id="L505">                outputDesserts.put(&quot;desserts&quot;, newList);</span>
+
+<span class="nc bnc" id="L507" title="All 2 branches missed.">                for (int i = 0; i &lt; newList.size(); i++){</span>
+<span class="nc" id="L508">                    Iterator&lt;String&gt; ite = set.iterator();</span>
+<span class="nc bnc" id="L509" title="All 2 branches missed.">                    while(ite.hasNext()){</span>
+<span class="nc" id="L510">                        String key = ite.next();</span>
+<span class="nc bnc" id="L511" title="All 2 branches missed.">                        if(!newList.get(i).containsKey(key)){</span>
+<span class="nc" id="L512">                            newList.get(i).put(key, null);</span>
+                        }
+<span class="nc" id="L514">                    }</span>
+                }
+
+<span class="nc" id="L517">                output.add(outputDesserts);</span>
+<span class="nc" id="L518">                Map&lt;String, Object&gt; outputSubjects = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L519">                outputSubjects.put(&quot;subjects&quot;, set);</span>
+<span class="nc" id="L520">                output.add(outputSubjects);</span>
+
+<span class="nc" id="L522">                serviceResult.setData(output);</span>
+<span class="nc" id="L523">            }else{</span>
+<span class="nc" id="L524">                serviceResult.setData(list);</span>
+            }
+<span class="nc bnc" id="L526" title="All 2 branches missed.">            if(serviceResult.getData().size() == 0) {</span>
+<span class="nc" id="L527">                serviceResult.setMessage(&quot;Lớp này chưa khai báo môn học cho lớp&quot;);</span>
+<span class="nc" id="L528">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+            }else{
+<span class="nc" id="L530">                serviceResult.setMessage(&quot;success&quot;);</span>
+            }
+<span class="nc" id="L532">        }catch (Exception e){</span>
+<span class="nc" id="L533">            serviceResult.setMessage(&quot;Lấy thông tin thất bại&quot;);</span>
+<span class="nc" id="L534">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L535">        }</span>
+<span class="nc" id="L536">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; checkEnableUpdate(Integer semester) {
+<span class="nc" id="L541">        Boolean check = false;</span>
+<span class="nc" id="L542">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="nc" id="L543">        List&lt;SchoolYear&gt; list = schoolYearRespository.getAllSchoolYearNoDistinct().get();</span>
+<span class="nc bnc" id="L544" title="All 2 branches missed.">        for(int i = 0; i &lt; list.size(); i++){</span>
+<span class="nc" id="L545">            Optional&lt;SchoolYear&gt; schoolYear = schoolYearRespository.getSemesterOf(now);</span>
+<span class="nc bnc" id="L546" title="All 2 branches missed.">            if(!schoolYear.equals(Optional.empty())){</span>
+<span class="nc bnc" id="L547" title="All 6 branches missed.">                if((semester == 1 || semester == 2) &amp;&amp; semester == Integer.parseInt(schoolYear.get().getSemester())){</span>
+<span class="nc" id="L548">                    check = true;</span>
+<span class="nc" id="L549">                    break;</span>
+                }
+<span class="nc bnc" id="L551" title="All 4 branches missed.">                if(semester == 0 &amp;&amp; Integer.parseInt(schoolYear.get().getSemester()) == 2){</span>
+<span class="nc" id="L552">                    check = true;</span>
+<span class="nc" id="L553">                    break;</span>
+                }
+            }
+        }
+<span class="nc" id="L557">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, check);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SubjectsServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">SubjectsServiceImpl.java</span></div><h1>SubjectsServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.form_data.SubjectForm;
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.entities.SubjectDept;
+import fpt.capstone.entities.Subjects;
+import fpt.capstone.payroll.ValidationException;
+import fpt.capstone.repository.*;
+import fpt.capstone.vo.DropDownVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+<span class="fc" id="L29">public class SubjectsServiceImpl implements SubjectsService {</span>
+    @Autowired
+    private SubjectsRepository subjectsRepository;
+    @Autowired
+    private SubjectDeptRepository subjectDeptRepository;
+    @Autowired
+    private ClassRoomRepository classRoomRepository;
+    @Autowired
+    private GradeLevelRepositpry gradeLevelRepositpry;
+    @Autowired
+    private DepartmentRepository departmentRepository;
+
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllSubjectsPagingAndSearching(Integer deptId, String code, String name, Integer gradeLevel, Integer pageIndex, Integer pageSize) {
+<span class="nc" id="L44">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        List&lt;Map&lt;String, Object&gt;&gt; subjects;
+<span class="nc" id="L46">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+        try {
+<span class="nc bnc" id="L48" title="All 6 branches missed.">            if (pageIndex == 0 &amp; pageSize == 0) {</span>
+<span class="nc" id="L49">                subjects = subjectsRepository.getAllSubjectsSearching(deptId, code, name, gradeLevel);</span>
+<span class="nc" id="L50">                List&lt;Map&lt;String, Object&gt;&gt; collect = subjects.stream().map(x -&gt; {</span>
+<span class="nc" id="L51">                    Map&lt;String, Object&gt; data = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L52">                    data.put(&quot;id&quot;, x.get(&quot;id&quot;));</span>
+<span class="nc" id="L53">                    data.put(&quot;code&quot;, x.get(&quot;code&quot;));</span>
+<span class="nc" id="L54">                    data.put(&quot;name&quot;, x.get(&quot;name&quot;));</span>
+<span class="nc" id="L55">                    data.put(&quot;gradeName&quot;, x.get(&quot;gradeName&quot;));</span>
+<span class="nc" id="L56">                    data.put(&quot;type&quot;, x.get(&quot;type&quot;));</span>
+<span class="nc" id="L57">                    data.put(&quot;sub_type&quot;, x.get(&quot;sub_type&quot;));</span>
+<span class="nc" id="L58">                    data.put(&quot;description&quot;, x.get(&quot;description&quot;));</span>
+<span class="nc" id="L59">                    data.put(&quot;isConfigGrade&quot;, x.get(&quot;isConfigGrade&quot;));</span>
+<span class="nc" id="L60">                    data.put(&quot;isConfigClass&quot;, x.get(&quot;isConfigClass&quot;));</span>
+<span class="nc" id="L61">                    data.put(&quot;Departments&quot;, subjectDeptRepository.getSubjectDeptBySubjectQueryNative(Integer.parseInt(x.get(&quot;id&quot;).toString())));</span>
+<span class="nc" id="L62">                    return data;</span>
+
+<span class="nc" id="L64">                }).collect(Collectors.toList());</span>
+<span class="nc" id="L65">                output.put(&quot;subjects&quot;, collect);</span>
+<span class="nc" id="L66">                serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L67">                serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L68">                serviceResult.setData(output);</span>
+
+<span class="nc" id="L70">            }</span>
+            else {
+<span class="nc" id="L72">                System.out.println(&quot;paging&quot;);</span>
+<span class="nc" id="L73">                Pageable pageable = PageRequest.of(pageIndex,pageSize);</span>
+<span class="nc" id="L74">                subjects = subjectsRepository.getAllSubjectsPagingAndSearching(deptId, code, name, gradeLevel,pageable);</span>
+<span class="nc" id="L75">                List&lt;Map&lt;String, Object&gt;&gt; collect = subjects.stream().map(x -&gt; {</span>
+<span class="nc" id="L76">                    Map&lt;String, Object&gt; data = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L77">                    data.put(&quot;id&quot;, x.get(&quot;id&quot;));</span>
+<span class="nc" id="L78">                    data.put(&quot;code&quot;, x.get(&quot;code&quot;));</span>
+<span class="nc" id="L79">                    data.put(&quot;name&quot;, x.get(&quot;name&quot;));</span>
+<span class="nc" id="L80">                    data.put(&quot;gradeName&quot;, x.get(&quot;gradeName&quot;));</span>
+<span class="nc" id="L81">                    data.put(&quot;type&quot;, x.get(&quot;type&quot;));</span>
+<span class="nc" id="L82">                    data.put(&quot;sub_type&quot;, x.get(&quot;sub_type&quot;));</span>
+<span class="nc" id="L83">                    data.put(&quot;description&quot;, x.get(&quot;description&quot;));</span>
+<span class="nc" id="L84">                    data.put(&quot;isConfigClass&quot;, x.get(&quot;isConfigClass&quot;));</span>
+<span class="nc" id="L85">                    data.put(&quot;isConfigGrade&quot;, x.get(&quot;isConfigGrade&quot;));</span>
+<span class="nc" id="L86">                    data.put(&quot;Departments&quot;, subjectDeptRepository.getSubjectDeptBySubjectQueryNative(Integer.parseInt(x.get(&quot;id&quot;).toString())));</span>
+<span class="nc" id="L87">                    return data;</span>
+
+<span class="nc" id="L89">                }).collect(Collectors.toList());</span>
+<span class="nc" id="L90">                output.put(&quot;pageSize&quot;, pageSize);</span>
+<span class="nc" id="L91">                output.put(&quot;pageIndex&quot;, pageIndex);</span>
+<span class="nc" id="L92">                output.put(&quot;subjects&quot;, collect);</span>
+<span class="nc" id="L93">                serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L94">                serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L95">                serviceResult.setData(output);</span>
+            }
+<span class="nc" id="L97">        } catch (Exception e) {</span>
+<span class="nc" id="L98">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L99">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L100">        }</span>
+<span class="nc" id="L101">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; loadScreen(Pageable pageable) {
+<span class="nc" id="L106">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L108">            List&lt;Map&lt;String, Object&gt;&gt; subjects = subjectsRepository.getAllSubjectsPaging(pageable);</span>
+<span class="nc" id="L109">            List&lt;Map&lt;String, Object&gt;&gt; collect = subjects.stream().map(x -&gt; {</span>
+<span class="nc" id="L110">                Map&lt;String, Object&gt; data = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L111">                data.put(&quot;id&quot;, x.get(&quot;id&quot;));</span>
+<span class="nc" id="L112">                data.put(&quot;code&quot;, x.get(&quot;code&quot;));</span>
+<span class="nc" id="L113">                data.put(&quot;name&quot;, x.get(&quot;name&quot;));</span>
+<span class="nc" id="L114">                data.put(&quot;gradeName&quot;, x.get(&quot;gradeName&quot;));</span>
+<span class="nc" id="L115">                data.put(&quot;type&quot;, x.get(&quot;type&quot;));</span>
+<span class="nc" id="L116">                data.put(&quot;sub_type&quot;, x.get(&quot;sub_type&quot;));</span>
+<span class="nc" id="L117">                data.put(&quot;description&quot;, x.get(&quot;description&quot;));</span>
+<span class="nc" id="L118">                data.put(&quot;canUpdate&quot;, x.get(&quot;canUpdate&quot;));</span>
+<span class="nc" id="L119">                data.put(&quot;Departments&quot;, subjectDeptRepository.getSubjectDeptsBySubjectId(Integer.parseInt(x.get(&quot;id&quot;).toString())));</span>
+<span class="nc" id="L120">                return data;</span>
+
+<span class="nc" id="L122">            }).collect(Collectors.toList());;</span>
+<span class="nc" id="L123">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L124">            output.put(&quot;pageSize&quot;, pageable.getPageSize());</span>
+<span class="nc" id="L125">            output.put(&quot;pageIndex&quot;, pageable.getPageNumber());</span>
+<span class="nc" id="L126">            output.put(&quot;subjects&quot;, collect);</span>
+<span class="nc" id="L127">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L128">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L129">            serviceResult.setData(output);</span>
+<span class="nc" id="L130">        } catch (Exception e) {</span>
+<span class="nc" id="L131">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L132">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L133">        }</span>
+<span class="nc" id="L134">        return serviceResult;</span>
+
+    }
+
+    @Override
+    public Integer getTotalSubject() {
+<span class="nc" id="L140">        return subjectsRepository.getTotalSubject();</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllSubjectsPaging(Pageable pageable) {
+<span class="nc" id="L145">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L147">            List&lt;Map&lt;String, Object&gt;&gt; subjects = subjectsRepository.getAllSubjectsPaging(pageable);</span>
+<span class="nc" id="L148">            List&lt;Map&lt;String, Object&gt;&gt; collect = subjects.stream().map(x -&gt; {</span>
+<span class="nc" id="L149">                Map&lt;String, Object&gt; data = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L150">                data.put(&quot;id&quot;, x.get(&quot;id&quot;));</span>
+<span class="nc" id="L151">                data.put(&quot;code&quot;, x.get(&quot;code&quot;));</span>
+<span class="nc" id="L152">                data.put(&quot;name&quot;, x.get(&quot;name&quot;));</span>
+<span class="nc" id="L153">                data.put(&quot;gradeName&quot;, x.get(&quot;gradeName&quot;));</span>
+<span class="nc" id="L154">                data.put(&quot;type&quot;, x.get(&quot;type&quot;));</span>
+<span class="nc" id="L155">                data.put(&quot;sub_type&quot;, x.get(&quot;sub_type&quot;));</span>
+<span class="nc" id="L156">                data.put(&quot;description&quot;, x.get(&quot;description&quot;));</span>
+<span class="nc" id="L157">                data.put(&quot;canUpdate&quot;, x.get(&quot;canUpdate&quot;));</span>
+<span class="nc" id="L158">                data.put(&quot;Departments&quot;, subjectDeptRepository.getSubjectDeptsBySubjectId(Integer.parseInt(x.get(&quot;id&quot;).toString())));</span>
+<span class="nc" id="L159">                return data;</span>
+
+<span class="nc" id="L161">            }).collect(Collectors.toList());;</span>
+<span class="nc" id="L162">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L163">            output.put(&quot;subjects&quot;, collect);</span>
+<span class="nc" id="L164">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L165">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L166">            serviceResult.setData(output);</span>
+<span class="nc" id="L167">        } catch (Exception e) {</span>
+<span class="nc" id="L168">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L169">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L170">        }</span>
+<span class="nc" id="L171">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;DropDownVo&gt;&gt; getDropDownByDeptIDAndGradeId(Integer deptID, Integer gradeId) {
+<span class="nc" id="L176">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, subjectsRepository.getSubjectsByDeptIDAndGradeLevel(deptID, gradeId));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getSubjectByDeptAndType(Integer grade_level, Integer type, String year, Integer grade_id, Integer semester) {
+<span class="nc" id="L181">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L182">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+        try {
+<span class="nc" id="L184">            output.put(&quot;data&quot;, subjectsRepository.getSubjectByDeptAndType(grade_level, type, year, grade_id, semester));</span>
+<span class="nc" id="L185">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L186">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L187">            serviceResult.setData(output);</span>
+<span class="nc" id="L188">        } catch (Exception ex) {</span>
+<span class="nc" id="L189">            serviceResult.setMessage(ex.getMessage());</span>
+<span class="nc" id="L190">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L191">        }</span>
+<span class="nc" id="L192">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getConfigScoreSubject(String parent_code) {
+<span class="nc" id="L197">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L198">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+        try {
+<span class="nc" id="L200">            output.put(&quot;data&quot;, subjectsRepository.getConfigScoreSubject(parent_code));</span>
+<span class="nc" id="L201">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L202">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L203">            serviceResult.setData(output);</span>
+<span class="nc" id="L204">        } catch (Exception ex) {</span>
+<span class="nc" id="L205">            serviceResult.setMessage(&quot;error&quot;);</span>
+<span class="nc" id="L206">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L207">        }</span>
+<span class="nc" id="L208">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getConfigGradingDetails(String parent_code) {
+<span class="nc" id="L213">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L214">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+        try {
+<span class="nc" id="L216">            output.put(&quot;data&quot;, subjectsRepository.getConfigGradingDetails(parent_code));</span>
+<span class="nc" id="L217">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L218">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L219">            serviceResult.setData(output);</span>
+<span class="nc" id="L220">        } catch (Exception ex) {</span>
+<span class="nc" id="L221">            serviceResult.setMessage(ex.getMessage());</span>
+<span class="nc" id="L222">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L223">        }</span>
+<span class="nc" id="L224">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getSubjectsNotYetConfigScoreboard(Integer grade_level, Integer sup_type, String year, Integer grade_id, Integer semester) {
+<span class="nc" id="L229">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L230">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+        try {
+<span class="nc" id="L232">            output.put(&quot;data&quot;, subjectsRepository.getSubjectsNotYetConfigScoreboard(grade_level, sup_type, year, grade_id, semester));</span>
+<span class="nc" id="L233">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L234">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L235">            serviceResult.setData(output);</span>
+<span class="nc" id="L236">        } catch (Exception ex) {</span>
+<span class="nc" id="L237">            serviceResult.setMessage(ex.getMessage());</span>
+<span class="nc" id="L238">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L239">        }</span>
+<span class="nc" id="L240">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; updateSubject(SubjectForm s, int id) {
+<span class="nc" id="L245">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L247">            Subjects subject = subjectsRepository.getById(id);</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">            if (subject == null) {</span>
+<span class="nc" id="L249">                serviceResult.setMessage(&quot;Môn học không tồn tại&quot;);</span>
+<span class="nc" id="L250">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L251">                serviceResult.setData(null);</span>
+<span class="nc" id="L252">                return serviceResult;</span>
+            }
+<span class="nc bnc" id="L254" title="All 2 branches missed.">            if (!gradeLevelRepositpry.isExist(s.getGradeLevel())) {</span>
+<span class="nc" id="L255">                serviceResult.setMessage(&quot;Khối học không tồn tại&quot;);</span>
+<span class="nc" id="L256">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L257">                serviceResult.setData(null);</span>
+<span class="nc" id="L258">                return serviceResult;</span>
+            }
+<span class="nc bnc" id="L260" title="All 2 branches missed.">            for (Integer deptId: s.getDeptId()) {</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">                if (!departmentRepository.isExistForClassRoom(deptId)) {</span>
+<span class="nc" id="L262">                    serviceResult.setMessage(&quot;Khoa ban với id : &quot;+deptId+ &quot; tồn tại&quot;);</span>
+<span class="nc" id="L263">                    serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L264">                    serviceResult.setData(null);</span>
+<span class="nc" id="L265">                    return serviceResult;</span>
+                }
+<span class="nc" id="L267">            }</span>
+<span class="nc" id="L268">            Subjects updateSubject = subjectsRepository.save(new Subjects(subject.getId(), subject.getCreatedTime(), &quot;&quot;, LocalDateTime.now(),</span>
+<span class="nc" id="L269">                    &quot;&quot;, s.getName(), s.getCode(), s.getGradeLevel(), s.getType(), s.getSubType(), s.getDescription()));</span>
+<span class="nc" id="L270">            subjectDeptRepository.deleteAll(subjectDeptRepository.getSubjectDeptsBySubjectId(id));</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">            for (Integer deptId: s.getDeptId()) {</span>
+<span class="nc" id="L272">                subjectDeptRepository.save(new SubjectDept(id,deptId));</span>
+<span class="nc" id="L273">            }</span>
+<span class="nc" id="L274">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L275">            output.put(&quot;saveResult&quot;, true);</span>
+<span class="nc" id="L276">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L277">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L278">            serviceResult.setData(output);</span>
+<span class="nc" id="L279">        } catch (Exception e) {</span>
+<span class="nc" id="L280">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L281">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L282">        }</span>
+<span class="nc" id="L283">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; addSubject(SubjectForm s) {
+<span class="nc" id="L288">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L290" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L291">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L293">            username = principal.toString();</span>
+        }
+<span class="nc" id="L295">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">        if (subjectsRepository.findByCode(s.getCode()) != null) {</span>
+<span class="nc" id="L297">            serviceResult.setMessage(&quot;Mã môn học đã tồn tại&quot;);</span>
+<span class="nc" id="L298">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L299">            serviceResult.setData(null);</span>
+<span class="nc" id="L300">            return serviceResult;</span>
+        }
+<span class="nc bnc" id="L302" title="All 2 branches missed.">        if (!gradeLevelRepositpry.isExist(s.getGradeLevel())) {</span>
+<span class="nc" id="L303">            serviceResult.setMessage(&quot;Khối học không tồn tại&quot;);</span>
+<span class="nc" id="L304">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L305">            serviceResult.setData(null);</span>
+<span class="nc" id="L306">            return serviceResult;</span>
+        }
+<span class="nc bnc" id="L308" title="All 2 branches missed.">        for (Integer deptId: s.getDeptId()) {</span>
+<span class="nc bnc" id="L309" title="All 2 branches missed.">            if (!departmentRepository.isExistForClassRoom(deptId)) {</span>
+<span class="nc" id="L310">                serviceResult.setMessage(&quot;Khoa ban với id : &quot;+deptId+ &quot; tồn tại&quot;);</span>
+<span class="nc" id="L311">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L312">                serviceResult.setData(null);</span>
+<span class="nc" id="L313">                return serviceResult;</span>
+            }
+<span class="nc" id="L315">        }</span>
+        try {
+<span class="nc" id="L317">            Subjects addSubject = subjectsRepository.save(new Subjects(LocalDateTime.now(), username, null,</span>
+<span class="nc" id="L318">                    &quot;&quot;, s.getName(), s.getCode(), s.getGradeLevel(), s.getType(), s.getSubType(), s.getDescription()));</span>
+<span class="nc bnc" id="L319" title="All 2 branches missed.">            for (Integer deptId: s.getDeptId()) {</span>
+<span class="nc" id="L320">                SubjectDept sd = new SubjectDept(addSubject.getId(), deptId);</span>
+<span class="nc" id="L321">                subjectDeptRepository.save(sd);</span>
+<span class="nc" id="L322">            }</span>
+<span class="nc" id="L323">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L324">            output.put(&quot;saveResult&quot;, true);</span>
+<span class="nc" id="L325">            output.put(&quot;addSubject&quot;, addSubject);</span>
+<span class="nc" id="L326">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L327">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L328">            serviceResult.setData(output);</span>
+<span class="nc" id="L329">        } catch (Exception e) {</span>
+<span class="nc" id="L330">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L331">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L332">        }</span>
+<span class="nc" id="L333">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; deleteSubject(int id) {
+<span class="nc" id="L338">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L340">            Subjects subject = subjectsRepository.getById(id);</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">            if (subject == null) {</span>
+<span class="nc" id="L342">                serviceResult.setMessage(&quot;Môn học không tồn tại&quot;);</span>
+<span class="nc" id="L343">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L344">                serviceResult.setData(null);</span>
+<span class="nc" id="L345">                return serviceResult;</span>
+            }
+<span class="nc" id="L347">            subjectsRepository.deleteById(id);</span>
+<span class="nc" id="L348">            List&lt;SubjectDept&gt; sd = subjectDeptRepository.getSubjectDeptsBySubjectId(id);</span>
+<span class="nc" id="L349">            subjectDeptRepository.deleteAll(sd);</span>
+<span class="nc" id="L350">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L351">            output.put(&quot;deleteResult&quot;, true);</span>
+<span class="nc" id="L352">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L353">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L354">            serviceResult.setData(output);</span>
+<span class="nc" id="L355">        } catch (Exception e) {</span>
+<span class="nc" id="L356">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L357">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L358">        }</span>
+<span class="nc" id="L359">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllSubjectByDeptIdAndGradeLevelAndYears(Integer deptId, Integer gradeLevel, String years) {
+<span class="nc" id="L364">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+
+        try {
+<span class="nc" id="L367">            List&lt;Map&lt;String, Object&gt;&gt; subjects = classRoomRepository.getAllClassByDeptIdAndGradeLevelAndYears(deptId, gradeLevel, years);</span>
+<span class="nc" id="L368">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L369">            output.put(&quot;subjects&quot;, subjects);</span>
+<span class="nc" id="L370">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L371">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L372">            serviceResult.setData(output);</span>
+<span class="nc" id="L373">        } catch (Exception e) {</span>
+<span class="nc" id="L374">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L375">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L376">        }</span>
+<span class="nc" id="L377">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getSubjectInClass(String class_code, Integer semester) {
+<span class="nc" id="L382">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+            List&lt;Map&lt;String, Object&gt;&gt; subjects;
+<span class="nc bnc" id="L385" title="All 2 branches missed.">            if (semester == 1) {</span>
+<span class="nc" id="L386">                subjects= subjectsRepository.listAllSubjectOfClassSemester1(class_code);;</span>
+            } else {
+<span class="nc" id="L388">                subjects= subjectsRepository.listAllSubjectOfClassSemester2(class_code);;</span>
+            }
+<span class="nc" id="L390">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L391">            output.put(&quot;subjects&quot;, subjects);</span>
+<span class="nc" id="L392">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L393">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L394">            serviceResult.setData(output);</span>
+<span class="nc" id="L395">        } catch (Exception e) {</span>
+<span class="nc" id="L396">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L397">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L398">        }</span>
+<span class="nc" id="L399">        return serviceResult;</span>
+        // TODO Auto-generated method stub
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

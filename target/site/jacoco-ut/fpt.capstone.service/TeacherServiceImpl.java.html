@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TeacherServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">TeacherServiceImpl.java</span></div><h1>TeacherServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.entities.Teacher;
+import fpt.capstone.entities.User;
+import fpt.capstone.form_data.TeacherForm;
+import fpt.capstone.payroll.ValidationException;
+import fpt.capstone.repository.TeacherRepository;
+import fpt.capstone.repository.UserRepository;
+import fpt.capstone.repository.DepartmentRepository;
+import fpt.capstone.utility.PhoneCheck;
+import fpt.capstone.utility.Regex;
+import fpt.capstone.vo.DepartmentVoV1;
+import fpt.capstone.vo.DropDownVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import fpt.capstone.entities.ServiceResult;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@Transactional
+<span class="fc" id="L32">public class TeacherServiceImpl implements TeacherService {</span>
+    @Autowired
+    private TeacherRepository repository;
+
+    @Autowired
+    private DepartmentRepository departmentRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Override
+    public ServiceResult&lt;List&lt;DropDownVo&gt;&gt; getDropDownValues(Integer depID) {
+<span class="nc" id="L44">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Teacher drop down&quot;, repository.getDropDownValues(depID));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;DropDownVo&gt;&gt; getAllTeacherOfRoot(Integer depID) {
+
+<span class="nc" id="L50">        List&lt;DepartmentVoV1&gt; allDep = departmentRepository.getAllDepartments();</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (allDep.size() == 0) {</span>
+<span class="nc" id="L52">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Teacher drop down&quot;, new ArrayList&lt;&gt;());</span>
+        }
+<span class="nc" id="L54">        Map&lt;Integer, List&lt;Integer&gt;&gt; depTreChildMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L55">        Map&lt;Integer, Integer&gt; depTreParentMap = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        for (DepartmentVoV1 d : allDep) {</span>
+<span class="nc" id="L57">            int child = d.getId();</span>
+<span class="nc" id="L58">            int parent = d.getParent().getId();</span>
+<span class="nc" id="L59">            depTreParentMap.put(child, parent);</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">            if (!depTreChildMap.containsKey(parent)) {</span>
+<span class="nc" id="L61">                depTreChildMap.put(parent, new ArrayList&lt;&gt;());</span>
+            }
+<span class="nc" id="L63">            depTreChildMap.get(parent).add(child);</span>
+<span class="nc" id="L64">        }</span>
+
+<span class="nc" id="L66">        int root = findRootParent(depTreParentMap, depID);</span>
+<span class="nc" id="L67">        List&lt;Integer&gt; allChild = depTreChildMap.get(root);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (allChild == null) {</span>
+<span class="nc" id="L69">            allChild = new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L71">        allChild.add(root);</span>
+<span class="nc" id="L72">        List&lt;DropDownVo&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        for (Integer leaf : allChild) {</span>
+<span class="nc" id="L74">            result.addAll(repository.getDropDownValues(leaf));</span>
+<span class="nc" id="L75">        }</span>
+
+
+<span class="nc" id="L78">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Teacher drop down&quot;, result);</span>
+    }
+
+    private int findRootParent(Map&lt;Integer, Integer&gt; depTreParentMap, Integer leafId) {
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (!depTreParentMap.containsKey(leafId)) {</span>
+<span class="nc" id="L83">            return 0;</span>
+        }
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (depTreParentMap.get(leafId) == 0) {</span>
+<span class="nc" id="L86">            return leafId;</span>
+        } else {
+<span class="nc" id="L88">            return findRootParent(depTreParentMap, depTreParentMap.get(leafId));</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllteacher() {
+<span class="nc" id="L94">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L95">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L96">        output.put(&quot;Teachers&quot;, repository.getAllTeacher());</span>
+<span class="nc" id="L97">        serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L98">        serviceResult.setMessage(&quot;Success&quot;);</span>
+<span class="nc" id="L99">        serviceResult.setData(output);</span>
+<span class="nc" id="L100">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllteacherGVCN() {
+<span class="nc" id="L105">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L106">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L107">        output.put(&quot;Teachers&quot;, repository.getAllTeacherDangLamOrTamNghi());</span>
+<span class="nc" id="L108">        serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L109">        serviceResult.setMessage(&quot;Success&quot;);</span>
+<span class="nc" id="L110">        serviceResult.setData(output);</span>
+<span class="nc" id="L111">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllTeacherByCodeOrFullNameAndAuthority(String codeName, String authorityCode, Integer deptId) {
+<span class="nc" id="L116">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L117">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L118">        output.put(&quot;Teachers&quot;, repository.getAllTeacherByCodeOrFullNameAndAuthority(codeName, authorityCode, deptId));</span>
+<span class="nc" id="L119">        serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L120">        serviceResult.setMessage(&quot;Success&quot;);</span>
+<span class="nc" id="L121">        serviceResult.setData(output);</span>
+<span class="nc" id="L122">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getTeacherDetailById(Integer teacherId) {
+<span class="nc" id="L127">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L128">        Map&lt;String, Object&gt; checkDepart = repository.checkDepartParent(repository.getById(teacherId).getDeptID());</span>
+<span class="nc" id="L129">        Map&lt;String, Object&gt; teacherFullData = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L130">        System.out.println(&quot;id : &quot; + teacherId);</span>
+        try {
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            if (checkDepart.get(&quot;check3&quot;).toString().equals(&quot;1&quot;)) {</span>
+<span class="nc" id="L133">                teacherFullData = repository.getTeacherDetailById3(teacherId);</span>
+
+            }
+<span class="nc bnc" id="L136" title="All 2 branches missed.">            if (checkDepart.get(&quot;check2&quot;).toString().equals(&quot;1&quot;)) {</span>
+<span class="nc" id="L137">                teacherFullData = repository.getTeacherDetailById2(teacherId);</span>
+
+            }
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            if (checkDepart.get(&quot;check1&quot;).toString().equals(&quot;1&quot;)) {</span>
+<span class="nc" id="L141">                teacherFullData = repository.getTeacherDetailById1(teacherId);</span>
+
+            }
+<span class="nc bnc" id="L144" title="All 2 branches missed.">            if (teacherFullData.size() == 0) {</span>
+<span class="nc" id="L145">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L146">                serviceResult.setMessage(&quot;Không tìm thấy giáo viên&quot;);</span>
+            } else {
+<span class="nc" id="L148">                serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L149">                serviceResult.setMessage(&quot;Success&quot;);</span>
+<span class="nc" id="L150">                serviceResult.setData(teacherFullData);</span>
+            }
+<span class="nc" id="L152">        } catch (Exception e) {</span>
+<span class="nc" id="L153">            e.printStackTrace();</span>
+<span class="nc" id="L154">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L155">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L156">            serviceResult.setData(teacherFullData);</span>
+<span class="nc" id="L157">        }</span>
+
+<span class="nc" id="L159">        return serviceResult;</span>
+    }
+
+    @Override
+    public List&lt;Teacher&gt; getTeacherByCode(String teacherCode) {
+<span class="nc" id="L164">        List&lt;Teacher&gt; teacher = repository.findByCode(teacherCode);</span>
+<span class="nc" id="L165">        return teacher;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; insert(TeacherForm form) {
+//        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+//        String username;
+//        if (principal instanceof UserDetails) {
+//            username = ((UserDetails) principal).getUsername();
+//        } else {
+//            username = principal.toString();
+//        }
+<span class="fc" id="L177">        DateTimeFormatter ft = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+<span class="fc" id="L178">        DateTimeFormatter ft2 = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&quot;);</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        if (form.getCode().length() == 0) {</span>
+<span class="fc" id="L180">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Mã cán bộ không được để trống&quot;, true);</span>
+        } else {
+<span class="fc bfc" id="L182" title="All 2 branches covered.">            if (repository.findByCode(form.getCode()).size() &gt; 0) {</span>
+<span class="fc" id="L183">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Mã cán bộ đã tồn tại&quot;, true);</span>
+            }
+        }
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        if (form.getFullName().length() == 0) {</span>
+<span class="fc" id="L187">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin tên cán bộ&quot;, true);</span>
+        }
+<span class="fc bfc" id="L189" title="All 2 branches covered.">        if (form.getStartDate() == null) {</span>
+<span class="fc" id="L190">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin ngày vào trường&quot;, true);</span>
+        }
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (form.getContractType() == null) {</span>
+<span class="fc" id="L193">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin loại hợp đồng&quot;, true);</span>
+        }
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        if (form.getPhone() == null) {</span>
+<span class="fc" id="L196">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin số điện thoại&quot;, true);</span>
+        } else {
+<span class="fc" id="L198">            boolean check = false;</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">            for (String phone : PhoneCheck.phoneHead) {</span>
+<span class="fc bfc" id="L200" title="All 4 branches covered.">                if (form.getPhone().startsWith(phone) &amp;&amp; form.getPhone().length() == 10) {</span>
+<span class="fc" id="L201">                    check = true;</span>
+<span class="fc" id="L202">                    break;</span>
+                }
+<span class="fc" id="L204">            }</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">            if (!check) {</span>
+<span class="fc" id="L206">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số điện thoại sai định dạng&quot;, true);</span>
+            }
+        }
+<span class="fc bfc" id="L209" title="All 2 branches covered.">        if (form.getBirthDay() == null) {</span>
+<span class="fc" id="L210">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin ngày sinh&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L213" title="All 2 branches covered.">        if (form.getIdentityCard().length() != 0) {</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">            if (!form.getIdentityCard().matches(Regex.onlyNumber)) {</span>
+<span class="fc" id="L215">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số CMND/CCCD sai định dạng&quot;, true);</span>
+            }
+        } else {
+<span class="fc" id="L218">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số CMND/CCCD sai định dạng&quot;, true);</span>
+        }
+<span class="fc bfc" id="L220" title="All 2 branches covered.">        if (form.getIssuedDate() == null) {</span>
+<span class="fc" id="L221">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin ngày cấp CMND/CCCD&quot;, true);</span>
+        }
+<span class="fc bfc" id="L223" title="All 2 branches covered.">        if (form.getSex() == null) {</span>
+<span class="fc" id="L224">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin giới tính&quot;, true);</span>
+        }
+        try {
+<span class="fc" id="L227">            Teacher teacher = new Teacher(form.getImage(), LocalDateTime.now(), &quot;admin&quot;, form.getFullName(), form.getCode(), form.getDeptId(), LocalDateTime.parse(form.getStartDate(), ft), form.getContractType(), form.getPhone(), form.getEmail(), LocalDate.parse(form.getBirthDay(), ft2), form.getHomeTown(), form.getNation(), form.getPermanentAddress(), form.getSocialInsuranceNumber(), form.getIdentityCard(), form.getIssuedAddress(), LocalDateTime.parse(form.getIssuedDate(), ft), form.getMarriageStatus(), form.getSex(), 0, form.getReligion(), form.getTemporaryAddress());</span>
+<span class="fc" id="L228">            repository.save(teacher);</span>
+<span class="fc" id="L229">            boolean insertUser = userService.insertUserForTeacher(form.getCode(), form.getFullName(), form.getPhone(), form.getImage(), form.getEmail(), form.getAuthorities(), &quot;admin&quot;);</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">            if (!insertUser) {</span>
+<span class="fc" id="L231">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Tạo tài khoản cho giáo viên không thành công&quot;, true);</span>
+            }
+<span class="fc" id="L233">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Thêm cán bộ thành công&quot;, true);</span>
+<span class="fc" id="L234">        } catch (Exception e) {</span>
+<span class="fc" id="L235">            e.printStackTrace();</span>
+<span class="fc" id="L236">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thêm cán bộ thất bại&quot;, true);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; update(TeacherForm form, Integer id) {
+//        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+//        String username;
+//        if (principal instanceof UserDetails) {
+//            username = ((UserDetails) principal).getUsername();
+//        } else {
+//            username = principal.toString();
+//        }
+<span class="fc" id="L249">        DateTimeFormatter ft = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+<span class="fc" id="L250">        DateTimeFormatter ft2 = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&quot;);</span>
+<span class="fc" id="L251">        Teacher teacherOld = repository.getById(id);</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">        if (repository.findById(id) == null) {</span>
+<span class="fc" id="L253">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không tìm thấy cán bộ&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L256" title="All 2 branches covered.">        if (form.getFullName().length() == 0) {</span>
+<span class="fc" id="L257">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin tên giáo viên&quot;, true);</span>
+        }
+<span class="fc bfc" id="L259" title="All 2 branches covered.">        if (form.getStartDate() == null) {</span>
+<span class="fc" id="L260">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin ngày vào trường&quot;, true);</span>
+        }
+<span class="fc bfc" id="L262" title="All 2 branches covered.">        if (form.getContractType() == null) {</span>
+<span class="fc" id="L263">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin loại hợp đồng&quot;, true);</span>
+        }
+<span class="fc bfc" id="L265" title="All 2 branches covered.">        if (form.getPhone() == null) {</span>
+<span class="fc" id="L266">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin số điện thoại&quot;, true);</span>
+        } else {
+<span class="fc" id="L268">            boolean check = false;</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">            if (!form.getPhone().matches(Regex.onlyNumber)) {</span>
+<span class="fc" id="L270">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số điện thoại sai định dạng&quot;, true);</span>
+            }
+<span class="fc bfc" id="L272" title="All 2 branches covered.">            for (String phone : PhoneCheck.phoneHead) {</span>
+<span class="fc bfc" id="L273" title="All 4 branches covered.">                if (form.getPhone().startsWith(phone) &amp;&amp; form.getPhone().length() == 10) {</span>
+<span class="fc" id="L274">                    check = true;</span>
+<span class="fc" id="L275">                    break;</span>
+                }
+<span class="fc" id="L277">            }</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">            if (!check) {</span>
+<span class="fc" id="L279">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số điện thoại sai định dạng&quot;, true);</span>
+
+            }
+        }
+<span class="fc bfc" id="L283" title="All 2 branches covered.">        if (form.getBirthDay() == null) {</span>
+<span class="fc" id="L284">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin ngày sinh&quot;, true);</span>
+        }
+<span class="fc bfc" id="L286" title="All 2 branches covered.">        if (form.getIdentityCard().length() != 0) {</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">            if (!form.getIdentityCard().matches(Regex.onlyNumber)) {</span>
+<span class="fc" id="L288">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số CMND/CCCD sai định dạng&quot;, true);</span>
+            }
+        } else {
+<span class="fc" id="L291">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số CMND/CCCD sai định dạng&quot;, true);</span>
+        }
+<span class="fc bfc" id="L293" title="All 2 branches covered.">        if (form.getIssuedDate() == null) {</span>
+<span class="fc" id="L294">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin ngày cấp CMND/CCCD&quot;, true);</span>
+        }
+<span class="fc bfc" id="L296" title="All 2 branches covered.">        if (form.getSex() == null) {</span>
+<span class="fc" id="L297">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu thông tin giới tính&quot;, true);</span>
+        }
+<span class="fc" id="L299">        teacherOld.setBirthDay(LocalDate.parse(form.getBirthDay(), ft2));</span>
+<span class="fc" id="L300">        teacherOld.setContractType(form.getContractType());</span>
+<span class="fc" id="L301">        teacherOld.setDeptID(form.getDeptId());</span>
+<span class="fc" id="L302">        teacherOld.setEmail(form.getEmail());</span>
+<span class="fc" id="L303">        teacherOld.setFullName(form.getFullName());</span>
+<span class="fc" id="L304">        teacherOld.setHomeTown(form.getHomeTown());</span>
+<span class="fc" id="L305">        teacherOld.setIdentityCard(form.getIdentityCard());</span>
+<span class="fc" id="L306">        teacherOld.setUpdateName(&quot;admin&quot;);</span>
+<span class="fc" id="L307">        teacherOld.setUpdateTime(LocalDateTime.now());</span>
+<span class="fc" id="L308">        teacherOld.setStartDate(LocalDateTime.parse(form.getStartDate(), ft));</span>
+<span class="fc" id="L309">        teacherOld.setPermanentAddress(form.getPermanentAddress());</span>
+<span class="fc" id="L310">        teacherOld.setMarriageStatus(form.getMarriageStatus());</span>
+<span class="fc" id="L311">        teacherOld.setSex(form.getSex());</span>
+<span class="fc" id="L312">        teacherOld.setIssuedAddress(form.getIssuedAddress());</span>
+<span class="fc" id="L313">        teacherOld.setIssuedDate(LocalDateTime.parse(form.getIssuedDate(), ft));</span>
+<span class="fc" id="L314">        teacherOld.setReligion(form.getReligion());</span>
+<span class="fc" id="L315">        teacherOld.setNation(form.getNation());</span>
+<span class="fc" id="L316">        teacherOld.setTemporaryAddress(form.getTemporaryAddress());</span>
+<span class="fc" id="L317">        teacherOld.setPhone(form.getPhone());</span>
+<span class="fc" id="L318">        teacherOld.setAvatar(form.getImage());</span>
+<span class="fc" id="L319">        teacherOld.setStatus(form.getStatus());</span>
+<span class="fc" id="L320">        repository.save(teacherOld);</span>
+<span class="fc" id="L321">        boolean updateUser = userService.updateUserForTeacher(form.getCode(), form.getFullName(), form.getPhone(), form.getImage(), form.getEmail(), form.getAuthorities(), &quot;admin&quot;);</span>
+<span class="fc bfc" id="L322" title="All 2 branches covered.">        if (!updateUser) {</span>
+<span class="fc" id="L323">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Cập nhật tài khoản cán bộ không thành công&quot;, true);</span>
+        }
+<span class="fc" id="L325">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật thông tin thành công&quot;, true);</span>
+
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllTeacherForTeachingAssignment(Integer subjectId) {
+<span class="nc" id="L331">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L332">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L333">        output.put(&quot;Teachers&quot;, repository.getAllTeacherForTeachingAssignment(subjectId));</span>
+<span class="nc" id="L334">        serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L335">        serviceResult.setMessage(&quot;Success&quot;);</span>
+<span class="nc" id="L336">        serviceResult.setData(output);</span>
+<span class="nc" id="L337">        return serviceResult;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

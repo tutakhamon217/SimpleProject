@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigScoreDetailServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">ConfigScoreDetailServiceImpl.java</span></div><h1>ConfigScoreDetailServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.entities.ConfigScoreDetail;
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.form_data.ConfigScoreDetailForm;
+import fpt.capstone.repository.ConfigScoreDetailRepository;
+import fpt.capstone.vo.ScoreDetailVO;
+import fpt.capstone.vo.ScoreStudentVO;
+import fpt.capstone.vo.ScoreVO;
+import fpt.capstone.vo.StudentVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import javax.transaction.Transactional;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.UUID;
+
+
+@Service
+@Transactional
+<span class="fc" id="L29">public class ConfigScoreDetailServiceImpl implements ConfigScoreDetailService {</span>
+    @Autowired
+    private ConfigScoreDetailRepository configScoreDetailRepository;
+
+    @Override
+    public ServiceResult&lt;List&lt;ConfigScoreDetailForm&gt;&gt; saveAll(List&lt;ConfigScoreDetailForm&gt; list) {
+
+        try{
+<span class="fc bfc" id="L37" title="All 2 branches covered.">            if(list.size() &gt; 0){</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">                for (int i = 0; i &lt; list.size(); i++){</span>
+<span class="pc bpc" id="L39" title="4 of 10 branches missed.">                    if(list.get(i).getName() == null || list.get(i).getName().trim().equals(&quot;&quot;) || list.get(i).getCoefficient() == null || list.get(i).getMinimum_score() == null || list.get(i).getQuantity() == null){</span>
+<span class="fc" id="L40">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Hãy nhập đầy đủ thông tin&quot;, null);</span>
+                    }
+<span class="pc bpc" id="L42" title="1 of 4 branches missed.">                    if(list.get(i).getCoefficient() &lt; 1 || list.get(i).getCoefficient() &gt; 10){</span>
+<span class="fc" id="L43">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Hệ số phải lớn hơn 0 và nhỏ hơn hoặc bằng 10&quot;, null);</span>
+                    }
+<span class="fc bfc" id="L45" title="All 4 branches covered.">                    if(list.get(i).getQuantity() &lt; 1 || list.get(i).getQuantity() &gt; 10){</span>
+<span class="fc" id="L46">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số lượng bài kiểm tra phải lớn hơn 0 và nhỏ hơn 10&quot;, null);</span>
+                    }
+<span class="pc bpc" id="L48" title="1 of 4 branches missed.">                    if(list.get(i).getMinimum_score() &lt; 1 || list.get(i).getMinimum_score() &gt; 10){</span>
+<span class="fc" id="L49">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số lượng bài kiểm tra tối thiểu phải lớn hơn 0 và nhỏ hơn 10&quot;, null);</span>
+                    }
+<span class="fc bfc" id="L51" title="All 2 branches covered.">                    if(list.get(i).getMinimum_score() &gt; list.get(i).getQuantity()){</span>
+<span class="fc" id="L52">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số lượng bài kiểm tra tối thiểu phải nhỏ hơn tổng số lượng bài kiểm tra&quot;, null);</span>
+                    }
+<span class="pc bpc" id="L54" title="1 of 4 branches missed.">                    if(list.get(i).getParent_code() == null || list.get(i).getParent_code().trim().equals(&quot;&quot;)){</span>
+<span class="fc" id="L55">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Danh sách cập nhật chứa thành phần chưa thuộc đầu điểm cho môn học nào&quot;, null);</span>
+                    }
+                }
+
+<span class="fc" id="L59">                List&lt;ConfigScoreDetail&gt; configScoreDetails = configScoreDetailRepository.getAllSubjectScoreByParentCode(list.get(0).getParent_code());</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">                for (int i = 0; i &lt; configScoreDetails.size(); i++){</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">                    if(configScoreDetailRepository.isScored(configScoreDetails.get(i).getCode()).equals(1)){</span>
+<span class="fc" id="L62">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm này đã được nhập điểm&quot;, null);</span>
+                    }
+                }
+<span class="fc" id="L65">                List&lt;ConfigScoreDetail&gt; listDetails = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L67">                Calendar calendar = Calendar.getInstance();</span>
+<span class="fc" id="L68">                String timeCurrent = calendar.get(Calendar.YEAR)</span>
+<span class="fc" id="L69">                        + (calendar.get(Calendar.MONTH) + 1)</span>
+<span class="fc" id="L70">                        + calendar.get(Calendar.DATE)</span>
+                        + &quot;_&quot;
+<span class="fc" id="L72">                        + calendar.get(Calendar.HOUR)</span>
+<span class="fc" id="L73">                        + calendar.get(Calendar.MINUTE)</span>
+<span class="fc" id="L74">                        + calendar.get(Calendar.MILLISECOND);</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">                for(ConfigScoreDetailForm cs : list){</span>
+
+<span class="fc" id="L77">                    ConfigScoreDetail csd = new ConfigScoreDetail(</span>
+<span class="fc" id="L78">                            cs.getName(),</span>
+<span class="fc" id="L79">                            cs.getCoefficient(),</span>
+<span class="fc" id="L80">                            cs.getQuantity(),</span>
+<span class="fc" id="L81">                            cs.getMinimum_score(),</span>
+<span class="fc" id="L82">                            &quot;conf_score_details&quot; + timeCurrent + &quot;_&quot; + UUID.randomUUID(),</span>
+<span class="fc" id="L83">                            cs.getParent_code()</span>
+                    );
+<span class="fc" id="L85">                    listDetails.add(csd);</span>
+<span class="fc" id="L86">                }</span>
+<span class="fc" id="L87">                listDetails = configScoreDetailRepository.saveAll(listDetails);</span>
+<span class="fc" id="L88">                ServiceResult sr = new ServiceResult();</span>
+<span class="fc" id="L89">                sr.setMessage(&quot;success&quot;);</span>
+<span class="fc" id="L90">                sr.setStatus(HttpStatus.OK);</span>
+<span class="fc" id="L91">                sr.setData(listDetails);</span>
+<span class="fc" id="L92">                return sr;</span>
+            }else{
+<span class="fc" id="L94">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;empty&quot;, null);</span>
+            }
+<span class="fc" id="L96">        }catch (Exception e){</span>
+<span class="fc" id="L97">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thêm mới thất bại&quot;, null);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; deleteAll(Integer[] list) {
+        try {
+
+<span class="fc bfc" id="L105" title="All 2 branches covered.">                for (int i = 0; i &lt; list.length; i++){</span>
+<span class="fc" id="L106">                    ConfigScoreDetail csd = configScoreDetailRepository.findById(list[i]).get();</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">                    if(configScoreDetailRepository.isScored(csd.getCode()).equals(1)){</span>
+<span class="fc" id="L108">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm này đã được nhập điểm&quot;, null);</span>
+                    }
+                }
+<span class="fc bfc" id="L111" title="All 2 branches covered.">            if(list.length &gt; 0){</span>
+<span class="fc" id="L112">                List&lt;ConfigScoreDetail&gt; listCSD = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">                for (int i = 0; i &lt; list.length; i++) {</span>
+<span class="fc" id="L114">                    ConfigScoreDetail csd = configScoreDetailRepository.findById(list[i]).get();</span>
+<span class="fc" id="L115">                    listCSD.add(csd);</span>
+                }
+<span class="fc" id="L117">                configScoreDetailRepository.deleteAll(listCSD);</span>
+<span class="fc" id="L118">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Xóa thành công&quot;, true);</span>
+            }else{
+<span class="fc" id="L120">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;empty&quot;, true);</span>
+            }
+<span class="fc" id="L122">        } catch (Exception e) {</span>
+<span class="fc" id="L123">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Xóa thất bại&quot;, false);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; updateChange(List&lt;ConfigScoreDetailForm&gt; list) {
+        try {
+<span class="fc bfc" id="L130" title="All 2 branches covered.">            for (int i = 0; i &lt; list.size(); i++){</span>
+<span class="pc bpc" id="L131" title="4 of 10 branches missed.">                if(list.get(i).getName() == null || list.get(i).getName().trim().equals(&quot;&quot;) || list.get(i).getCoefficient() == null || list.get(i).getMinimum_score() == null || list.get(i).getQuantity() == null){</span>
+<span class="fc" id="L132">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Hãy nhập đầy đủ thông tin&quot;, null);</span>
+                }
+<span class="fc bfc" id="L134" title="All 2 branches covered.">                if(list.get(i).getId() == null){</span>
+<span class="fc" id="L135">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm &quot; + list.get(i).getName() + &quot; chưa tồn tại trước đó trong môn học&quot;, null);</span>
+                }
+<span class="pc bpc" id="L137" title="1 of 4 branches missed.">                if(list.get(i).getCoefficient() &lt; 1 || list.get(i).getCoefficient() &gt; 10){</span>
+<span class="fc" id="L138">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Hệ số phải lớn hơn 0 và nhỏ hơn hoặc bằng 10&quot;, null);</span>
+                }
+<span class="fc bfc" id="L140" title="All 4 branches covered.">                if(list.get(i).getQuantity() &lt; 1 || list.get(i).getQuantity() &gt; 10){</span>
+<span class="fc" id="L141">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số lượng bài kiểm tra phải lớn hơn 0 và nhỏ hơn 10&quot;, null);</span>
+                }
+<span class="pc bpc" id="L143" title="1 of 4 branches missed.">                if(list.get(i).getMinimum_score() &lt; 1 || list.get(i).getMinimum_score() &gt; 10){</span>
+<span class="fc" id="L144">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số lượng bài kiểm tra tối thiểu phải lớn hơn 0 và nhỏ hơn 10&quot;, null);</span>
+                }
+<span class="fc bfc" id="L146" title="All 2 branches covered.">                if(list.get(i).getMinimum_score() &gt; list.get(i).getQuantity()){</span>
+<span class="fc" id="L147">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số lượng bài kiểm tra tối thiểu phải nhỏ hơn tổng số lượng bài kiểm tra&quot;, null);</span>
+                }
+<span class="fc bfc" id="L149" title="All 4 branches covered.">                if(list.get(i).getCode() == null || list.get(i).getCode().trim().equals(&quot;&quot;)){</span>
+<span class="fc" id="L150">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm '&quot;+ list.get(i).getName() +&quot;' chưa từng tồn tại&quot;, null);</span>
+                }
+<span class="pc bpc" id="L152" title="1 of 4 branches missed.">                if(list.get(i).getParent_code() == null || list.get(i).getParent_code().trim().equals(&quot;&quot;)){</span>
+<span class="fc" id="L153">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Danh sách cập nhật chứa thành phần chưa thuộc đầu điểm cho môn học nào&quot;, null);</span>
+                }
+            }
+
+<span class="fc bfc" id="L157" title="All 2 branches covered.">            for (int i = 0; i &lt; list.size(); i++){</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">                if(configScoreDetailRepository.isScored(list.get(i).getCode()).equals(1)){</span>
+<span class="fc" id="L159">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm này đã được nhập điểm&quot;, null);</span>
+                }
+            }
+<span class="fc bfc" id="L162" title="All 2 branches covered.">            if(list.size() &gt; 0){</span>
+<span class="fc" id="L163">                List&lt;ConfigScoreDetail&gt; listCSD = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">                for (int i = 0; i &lt; list.size(); i++) {</span>
+<span class="fc" id="L165">                    ConfigScoreDetail csd = configScoreDetailRepository.findById(list.get(i).getId()).get();</span>
+<span class="fc" id="L166">                    csd.setName(list.get(i).getName());</span>
+<span class="fc" id="L167">                    csd.setCoefficient(list.get(i).getCoefficient());</span>
+<span class="fc" id="L168">                    csd.setQuantity(list.get(i).getQuantity());</span>
+<span class="fc" id="L169">                    csd.setMinimumScore(list.get(i).getMinimum_score());</span>
+<span class="fc" id="L170">                    listCSD.add(csd);</span>
+                }
+<span class="fc" id="L172">                configScoreDetailRepository.saveAll(listCSD);</span>
+<span class="fc" id="L173">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật thành công&quot;, true);</span>
+            }else{
+<span class="fc" id="L175">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;empty&quot;, true);</span>
+            }
+<span class="fc" id="L177">        } catch (Exception e) {</span>
+<span class="fc" id="L178">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Cập nhật thất bại&quot;, false);</span>
+        }
+    }
+
+//    @Override
+//    public List&lt;ScoreStudentVO&gt; getScoreBySubjectCodeAndClassCodeAndSemester(String subjectCode, Integer semester, String classCode) {
+//        List&lt;Map&lt;String, Object&gt;&gt; scoreStudentList=configScoreDetailRepository.getScoreStudent(subjectCode,semester,classCode);
+//        List&lt;ScoreStudentVO&gt; scoreStudentVOList=new ArrayList&lt;&gt;();
+//        List&lt;ScoreVO&gt;scoreVOList=new ArrayList&lt;&gt;();
+//
+//
+//        for (Map&lt;String, Object&gt; sc :scoreStudentList) {
+//            ScoreStudentVO scoreStudentVO=new ScoreStudentVO();
+//            scoreStudentVO.setStudentCode(sc.get(&quot;student_code&quot;).toString());
+//            scoreStudentVO.setStudentName(sc.get(&quot;full_name&quot;).toString());
+//            scoreStudentVO.setAvgScore((Double)sc.get(&quot;avg_score&quot;));
+//            scoreStudentVOList.add(scoreStudentVO);
+//
+//            ScoreVO scoreVO=new ScoreVO();
+//            scoreVO.setId((Integer) sc.get(&quot;confScoreDetailsId&quot;));
+//            scoreVO.setName(sc.get(&quot;confScoreDetailsName&quot;).toString());
+//            scoreVO.setCoefficient((Float)sc.get(&quot;coefficient&quot;));
+//            scoreVO.setQuantity((Integer) sc.get(&quot;quantity&quot;));
+//            scoreVO.setMinimumScore((Integer) sc.get(&quot;miniumScore&quot;));
+//            scoreVOList.add(scoreVO);
+//            scoreStudentVO.setScoreVOList(scoreVOList);
+//
+//
+//        }
+//        System.out.println(scoreStudentVOList.size());
+//        return scoreStudentVOList;
+//
+//    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

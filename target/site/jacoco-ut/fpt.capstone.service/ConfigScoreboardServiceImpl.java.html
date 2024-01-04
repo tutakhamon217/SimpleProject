@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigScoreboardServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">ConfigScoreboardServiceImpl.java</span></div><h1>ConfigScoreboardServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.entities.*;
+import fpt.capstone.form_data.ConfigGradeDetailForm;
+import fpt.capstone.form_data.ConfigScoreDetailForm;
+import fpt.capstone.repository.ConfigGradeDetailRepository;
+import fpt.capstone.repository.ConfigScoreDetailRepository;
+import fpt.capstone.repository.ConfigScoreSubjectRepository;
+import fpt.capstone.repository.ConfigScoreboardRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+@Transactional
+<span class="fc" id="L23">public class ConfigScoreboardServiceImpl implements ConfigScoreboardService {</span>
+
+    @Autowired
+    private ConfigScoreboardRepository configScoreboardRepository;
+
+    @Autowired
+    private ConfigScoreSubjectRepository configScoreSubjectRepository;
+
+    @Autowired
+    private ConfigScoreDetailRepository configScoreDetailRepository;
+
+    @Autowired
+    private ConfigGradeDetailRepository configGradeDetailRepository;
+
+    @Override
+    public List&lt;Map&lt;String, Object&gt;&gt; getDropDownListGradeByYear(String year) {
+<span class="nc" id="L39">        return configScoreboardRepository.getDropDownListGradeByYear(year);</span>
+    }
+
+    @Override
+    public ConfigScoreboard configFromBeginningScoreboardGrading(List&lt;ConfigGradeDetailForm&gt; configGradeDetailForms,
+                                                                 Integer grade_id,
+                                                                 String year,
+                                                                 String subjectCode,
+                                                                 Integer semester) {
+<span class="nc" id="L48">        ConfigScoreboard create = new ConfigScoreboard();</span>
+<span class="nc" id="L49">        create.setYear(year);</span>
+<span class="nc" id="L50">        create.setGradeId(grade_id);</span>
+<span class="nc" id="L51">        Calendar calendar = Calendar.getInstance();</span>
+        String code;
+<span class="nc" id="L53">        code = &quot;scoreboard_&quot;</span>
+<span class="nc" id="L54">                + calendar.get(Calendar.YEAR)</span>
+<span class="nc" id="L55">                + (calendar.get(Calendar.MONTH) + 1)</span>
+<span class="nc" id="L56">                + calendar.get(Calendar.DATE)</span>
+                + &quot;_&quot;
+<span class="nc" id="L58">                + calendar.get(Calendar.HOUR)</span>
+<span class="nc" id="L59">                + calendar.get(Calendar.MINUTE)</span>
+<span class="nc" id="L60">                + calendar.get(Calendar.MILLISECOND);</span>
+<span class="nc" id="L61">        create.setCode(code);</span>
+<span class="nc" id="L62">        ConfigScoreboard csb = configScoreboardRepository.save(create);</span>
+
+
+<span class="nc" id="L65">        ConfigScoreSubject css = new ConfigScoreSubject();</span>
+<span class="nc" id="L66">        String codeCSS = &quot;conf_score_subject_&quot;</span>
+                + subjectCode
+                + &quot;_&quot;
+<span class="nc" id="L69">                + calendar.get(Calendar.YEAR)</span>
+<span class="nc" id="L70">                + (calendar.get(Calendar.MONTH) + 1)</span>
+<span class="nc" id="L71">                + calendar.get(Calendar.DATE)</span>
+                + &quot;_&quot;
+<span class="nc" id="L73">                + calendar.get(Calendar.HOUR)</span>
+<span class="nc" id="L74">                + calendar.get(Calendar.MINUTE)</span>
+<span class="nc" id="L75">                + calendar.get(Calendar.MILLISECOND);</span>
+<span class="nc" id="L76">        css.setCode(codeCSS);</span>
+<span class="nc" id="L77">        css.setSubjectCode(subjectCode);</span>
+<span class="nc" id="L78">        css.setParentCode(code);</span>
+<span class="nc" id="L79">        css.setSemester(semester);</span>
+<span class="nc" id="L80">        configScoreSubjectRepository.save(css);</span>
+
+<span class="nc" id="L82">        String timeCurrent = calendar.get(Calendar.YEAR)</span>
+<span class="nc" id="L83">                + (calendar.get(Calendar.MONTH) + 1)</span>
+<span class="nc" id="L84">                + calendar.get(Calendar.DATE)</span>
+                + &quot;_&quot;
+<span class="nc" id="L86">                + calendar.get(Calendar.HOUR)</span>
+<span class="nc" id="L87">                + calendar.get(Calendar.MINUTE)</span>
+<span class="nc" id="L88">                + calendar.get(Calendar.MILLISECOND);</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        for (ConfigGradeDetailForm obj : configGradeDetailForms) {</span>
+<span class="nc" id="L90">            ConfigGradeDetail csd = new ConfigGradeDetail();</span>
+<span class="nc" id="L91">            csd.setName(obj.getName());</span>
+<span class="nc" id="L92">            csd.setSelectedValue(obj.getSelected_value());</span>
+<span class="nc" id="L93">            csd.setTypeChoose(obj.getType_choose());</span>
+<span class="nc" id="L94">            String codeCSD = &quot;conf_grading_details&quot; + timeCurrent + &quot;_&quot; + UUID.randomUUID();</span>
+<span class="nc" id="L95">            csd.setCode(codeCSD);</span>
+<span class="nc" id="L96">            csd.setParentCode(codeCSS);</span>
+<span class="nc" id="L97">            configGradeDetailRepository.save(csd);</span>
+<span class="nc" id="L98">        }</span>
+
+<span class="nc" id="L100">        return csb;</span>
+    }
+
+    @Override
+    public ConfigScoreboard configFromBeginningScoreboardScore(List&lt;ConfigScoreDetailForm&gt; configScoreDetails,
+                                                               Integer grade_id,
+                                                               String year,
+                                                               String subjectCode,
+                                                               Integer semester) {
+<span class="nc" id="L109">        ConfigScoreboard create = new ConfigScoreboard();</span>
+<span class="nc" id="L110">        create.setYear(year);</span>
+<span class="nc" id="L111">        create.setGradeId(grade_id);</span>
+<span class="nc" id="L112">        Calendar calendar = Calendar.getInstance();</span>
+        String code;
+<span class="nc" id="L114">        code = &quot;scoreboard_&quot;</span>
+<span class="nc" id="L115">                + calendar.get(Calendar.YEAR)</span>
+<span class="nc" id="L116">                + (calendar.get(Calendar.MONTH) + 1)</span>
+<span class="nc" id="L117">                + calendar.get(Calendar.DATE)</span>
+                + &quot;_&quot;
+<span class="nc" id="L119">                + calendar.get(Calendar.HOUR)</span>
+<span class="nc" id="L120">                + calendar.get(Calendar.MINUTE)</span>
+<span class="nc" id="L121">                + calendar.get(Calendar.MILLISECOND);</span>
+<span class="nc" id="L122">        create.setCode(code);</span>
+<span class="nc" id="L123">        ConfigScoreboard csb = configScoreboardRepository.save(create);</span>
+
+
+<span class="nc" id="L126">        ConfigScoreSubject css = new ConfigScoreSubject();</span>
+<span class="nc" id="L127">        String codeCSS = &quot;conf_score_subject_&quot;</span>
+                + subjectCode
+                + &quot;_&quot;
+<span class="nc" id="L130">                + calendar.get(Calendar.YEAR)</span>
+<span class="nc" id="L131">                + (calendar.get(Calendar.MONTH) + 1)</span>
+<span class="nc" id="L132">                + calendar.get(Calendar.DATE)</span>
+                + &quot;_&quot;
+<span class="nc" id="L134">                + calendar.get(Calendar.HOUR)</span>
+<span class="nc" id="L135">                + calendar.get(Calendar.MINUTE)</span>
+<span class="nc" id="L136">                + calendar.get(Calendar.MILLISECOND);</span>
+<span class="nc" id="L137">        css.setCode(codeCSS);</span>
+<span class="nc" id="L138">        css.setSubjectCode(subjectCode);</span>
+<span class="nc" id="L139">        css.setParentCode(code);</span>
+<span class="nc" id="L140">        css.setSemester(semester);</span>
+<span class="nc" id="L141">        configScoreSubjectRepository.save(css);</span>
+
+<span class="nc" id="L143">        String timeCurrent = calendar.get(Calendar.YEAR)</span>
+<span class="nc" id="L144">                + (calendar.get(Calendar.MONTH) + 1)</span>
+<span class="nc" id="L145">                + calendar.get(Calendar.DATE)</span>
+                + &quot;_&quot;
+<span class="nc" id="L147">                + calendar.get(Calendar.HOUR)</span>
+<span class="nc" id="L148">                + calendar.get(Calendar.MINUTE)</span>
+<span class="nc" id="L149">                + calendar.get(Calendar.MILLISECOND);</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        for (ConfigScoreDetailForm obj : configScoreDetails) {</span>
+<span class="nc" id="L151">            ConfigScoreDetail csd = new ConfigScoreDetail();</span>
+<span class="nc" id="L152">            csd.setName(obj.getName());</span>
+<span class="nc" id="L153">            csd.setCoefficient(obj.getCoefficient());</span>
+<span class="nc" id="L154">            csd.setQuantity(obj.getQuantity());</span>
+<span class="nc" id="L155">            csd.setMinimumScore(obj.getMinimum_score());</span>
+<span class="nc" id="L156">            String codeCSD = &quot;conf_score_details&quot; + timeCurrent + &quot;_&quot; + UUID.randomUUID();</span>
+<span class="nc" id="L157">            csd.setCode(codeCSD);</span>
+<span class="nc" id="L158">            csd.setParentCode(codeCSS);</span>
+<span class="nc" id="L159">            configScoreDetailRepository.save(csd);</span>
+<span class="nc" id="L160">        }</span>
+
+<span class="nc" id="L162">        return csb;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

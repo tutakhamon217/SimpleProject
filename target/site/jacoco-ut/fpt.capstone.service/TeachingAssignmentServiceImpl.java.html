@@ -1,0 +1,561 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TeachingAssignmentServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">TeachingAssignmentServiceImpl.java</span></div><h1>TeachingAssignmentServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.entities.*;
+import fpt.capstone.form_data.TeachingAssignmentUpdate;
+import fpt.capstone.payroll.TeachingAssignmentImportException;
+import fpt.capstone.payroll.ValidationException;
+import fpt.capstone.repository.*;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
+
+import org.apache.poi.ss.util.CellRangeAddressList;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.transaction.TransactionRequiredException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.util.*;
+
+
+@Service
+@Transactional
+<span class="fc" id="L34">public class TeachingAssignmentServiceImpl implements TeachingAssignmentService {</span>
+    @Autowired
+    private TeachingAssignmentRepository teachingAssignmentRepository;
+
+    @Autowired
+    private SubjectsRepository subjectsRepository;
+
+    @Autowired
+    private TeacherRepository teacherRepository;
+
+    @Autowired
+    private SchoolYearRespository schoolYearRespository;
+
+    @Autowired
+    private SubjectClassRepository subjectClassRepository;
+
+    @Autowired
+    private ClassRoomRepository classRoomRepository;
+
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllTeachingAssignmentSearching(String nameCodeTeacher, String nameCodeSubject, Integer classId) {
+<span class="nc" id="L56">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L58">            List&lt;Map&lt;String, Object&gt;&gt; teachingAssignments = teachingAssignmentRepository.getAllTeachingAssignmentSearching(nameCodeTeacher, nameCodeSubject, classId);</span>
+<span class="nc" id="L59">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L60">            output.put(&quot;teachingAssignment&quot;, teachingAssignments);</span>
+<span class="nc" id="L61">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L62">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L63">            serviceResult.setData(output);</span>
+<span class="nc" id="L64">        } catch (Exception e) {</span>
+<span class="nc" id="L65">            e.printStackTrace();</span>
+<span class="nc" id="L66">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L67">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L68">        }</span>
+<span class="nc" id="L69">        return serviceResult;</span>
+    }
+
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; delete(Integer teachingAssignmentId) {
+<span class="nc" id="L73">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (subjectsRepository.isMarked(teachingAssignmentId) &gt; 0) {</span>
+<span class="nc" id="L75">            throw new ValidationException(&quot;teaching Assignment Id &quot;, &quot;this subject is marked&quot;);</span>
+        }
+        try {
+<span class="nc" id="L78">            teachingAssignmentRepository.deleteById(teachingAssignmentId);</span>
+<span class="nc" id="L79">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L80">            output.put(&quot;deleted&quot;, true);</span>
+<span class="nc" id="L81">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L82">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L83">            serviceResult.setData(output);</span>
+<span class="nc" id="L84">        } catch (Exception e) {</span>
+<span class="nc" id="L85">            e.printStackTrace();</span>
+<span class="nc" id="L86">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L87">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L88">        }</span>
+<span class="nc" id="L89">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; update(TeachingAssignmentUpdate teachingAssignmentUpdate) {
+<span class="nc" id="L94">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L95">        Teacher teacher = teacherRepository.getById(teachingAssignmentUpdate.getTeacherId());</span>
+        try {
+<span class="nc" id="L97">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L98">            TeachingAssignment update = teachingAssignmentRepository.getById(teachingAssignmentUpdate.getTeachingAssignmentId());</span>
+<span class="nc" id="L99">            List&lt;TeachingAssignment&gt; duplcicates = teachingAssignmentRepository.findBySubjectCodeAndClassCode(teachingAssignmentUpdate.getSubjectCode(), teachingAssignmentUpdate.getClassCode());</span>
+<span class="nc" id="L100">            TeachingAssignment duplcicate = null;</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">            for (TeachingAssignment duplicate : duplcicates) {</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">                if (!duplicate.getTeacherCode().equals(update.getTeacherCode())) {</span>
+<span class="nc" id="L103">                    duplcicate = duplicate;</span>
+<span class="nc" id="L104">                    break;</span>
+                }
+<span class="nc" id="L106">            }</span>
+
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            if (null != duplcicate) {</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">                if (duplcicate.getSemester1() == 1) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">                    if (teachingAssignmentUpdate.getSemester1() == 1) {</span>
+<span class="nc" id="L111">                        output.put(&quot;updated&quot;, false);</span>
+<span class="nc" id="L112">                        serviceResult.setMessage(&quot;Giáo viên &quot; + duplcicate.getTeacherCode() + &quot; đã được phân công giảng dạy môn &quot; + duplcicate.getSubjectCode() + &quot; lớp &quot; + duplcicate.getClassCode() + &quot; ở học kỳ 1&quot;);</span>
+<span class="nc" id="L113">                        serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L114">                        serviceResult.setData(output);</span>
+<span class="nc" id="L115">                        return serviceResult;</span>
+                    }
+                }
+<span class="nc bnc" id="L118" title="All 2 branches missed.">                if (duplcicate.getSemester2() == 1) {</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">                    if (teachingAssignmentUpdate.getSemester2() == 1) {</span>
+<span class="nc" id="L120">                        output.put(&quot;updated&quot;, false);</span>
+<span class="nc" id="L121">                        serviceResult.setMessage(&quot;Giáo viên &quot; + duplcicate.getTeacherCode() + &quot; đã được phân công giảng dạy môn &quot; + duplcicate.getSubjectCode() + &quot; lớp &quot; + duplcicate.getClassCode() + &quot; ở học kỳ 2&quot;);</span>
+<span class="nc" id="L122">                        serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L123">                        serviceResult.setData(output);</span>
+<span class="nc" id="L124">                        return serviceResult;</span>
+                    }
+                }
+            }
+
+<span class="nc" id="L129">            update.setTeacherCode(teacher.getCode());</span>
+<span class="nc" id="L130">            update.setApplyAllSemester(teachingAssignmentUpdate.getApplyAllSemester());</span>
+<span class="nc" id="L131">            update.setSemester1(teachingAssignmentUpdate.getSemester1());</span>
+<span class="nc" id="L132">            update.setSemester2(teachingAssignmentUpdate.getSemester2());</span>
+<span class="nc" id="L133">            teachingAssignmentRepository.save(update);</span>
+
+<span class="nc" id="L135">            output.put(&quot;updated&quot;, true);</span>
+<span class="nc" id="L136">            serviceResult.setMessage(&quot;Cập nhật thành công&quot;);</span>
+<span class="nc" id="L137">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L138">            serviceResult.setData(output);</span>
+<span class="nc" id="L139">        } catch (Exception e) {</span>
+<span class="nc" id="L140">            e.printStackTrace();</span>
+<span class="nc" id="L141">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L142">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L143">        }</span>
+<span class="nc" id="L144">        return serviceResult;</span>
+    }
+
+    @Transactional(rollbackFor = {TeachingAssignmentImportException.class, Exception.class})
+    @Override
+    public ServiceResult&lt;Boolean&gt; importExcel(MultipartFile file, String years) throws IOException, TeachingAssignmentImportException {
+<span class="nc" id="L150">        Integer semesterAmount = schoolYearRespository.getSemesterAmount(years);</span>
+//        Set&lt;Integer&gt; idAdded = new HashSet&lt;&gt;();
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        if (isExcelFormat(file)) {</span>
+<span class="nc" id="L153">            Workbook workbook = new XSSFWorkbook(file.getInputStream());</span>
+<span class="nc" id="L154">            Sheet sheet = workbook.getSheetAt(0);</span>
+<span class="nc" id="L155">            int noOfColumns = sheet.getRow(3).getPhysicalNumberOfCells();</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">            if (noOfColumns - 2 != semesterAmount) {</span>
+<span class="nc" id="L157">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Số lượng học kỳ trong file đang sai, năm học đang có &quot; + semesterAmount + &quot; học kỳ&quot;, null);</span>
+            }
+            // Get all rows
+<span class="nc" id="L160">            Iterator&lt;Row&gt; rows = sheet.iterator();</span>
+<span class="nc" id="L161">            int rowNumber = 0;</span>
+<span class="nc" id="L162">            String String00 = sheet.getRow(0).getCell(0).getStringCellValue();</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">            if (!String00.equals(&quot;DANH SÁCH PHÂN CÔNG GIẢNG DẠY&quot;)) {</span>
+<span class="nc" id="L164">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Nội dung file tại ô A1 đang sai&quot;, null);</span>
+            }
+<span class="nc" id="L166">            String yearInExcel = sheet.getRow(1).getCell(0).getStringCellValue().substring(10, 19);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">            if (!yearInExcel.equals(years)) {</span>
+<span class="nc" id="L168">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;năm học trong file đang sai, năm học đúng là &quot; + years, null);</span>
+            }
+<span class="nc" id="L170">            String String31 = sheet.getRow(3).getCell(1).getStringCellValue();</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">            if (!String31.equals(&quot;Giáo viên giảng dạy&quot;)) {</span>
+<span class="nc" id="L172">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Nội dung file tại ô B4 đang sai&quot;, null);</span>
+            }
+<span class="nc bnc" id="L174" title="All 4 branches missed.">            if (sheet.getRow(3).getCell(2) == null || sheet.getRow(3).getCell(2).getCellTypeEnum() == CellType.BLANK) {// khong nhap diem thi nhay sang o tiepư</span>
+<span class="nc" id="L175">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu cột Phân công Giảng dạy Học kỳ I&quot;, null);</span>
+            }
+<span class="nc bnc" id="L177" title="All 2 branches missed.">            if (semesterAmount == 2) {</span>
+<span class="nc bnc" id="L178" title="All 4 branches missed.">                if (sheet.getRow(3).getCell(3) == null || sheet.getRow(3).getCell(2).getCellTypeEnum() == CellType.BLANK) {// khong nhap diem thi nhay sang o tiepư</span>
+<span class="nc" id="L179">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thiếu cột Phân công Giảng dạy Học kỳ II&quot;, null);</span>
+                }
+            }
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            while (rows.hasNext()) {</span>
+<span class="nc" id="L183">                Row currentRow = rows.next();</span>
+<span class="nc" id="L184">                Iterator&lt;Cell&gt; cellsInRow = currentRow.iterator();</span>
+<span class="nc" id="L185">                String semester1 = null;</span>
+<span class="nc" id="L186">                String semester2 = null;</span>
+<span class="nc" id="L187">                String teacherCode = null;</span>
+<span class="nc" id="L188">                String teacherName = null;</span>
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                if (rowNumber &lt; 3) {</span>
+<span class="nc" id="L191">                    rowNumber++;</span>
+<span class="nc" id="L192">                    continue;</span>
+                }
+<span class="nc" id="L194">                int cellIdx = 0;</span>
+<span class="nc bnc" id="L195" title="All 4 branches missed.">                if (rowNumber &gt;= 3 &amp;&amp; rowNumber &lt;= sheet.getPhysicalNumberOfRows() - 1) {</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">                    while (cellsInRow.hasNext()) {</span>
+<span class="nc" id="L197">                        Cell currentCell = cellsInRow.next();</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">                        if (cellIdx == 1) {</span>
+<span class="nc" id="L199">                            String teacherCodeTeacherName = currentCell.getStringCellValue();</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">                            if (teacherCodeTeacherName.equals(&quot;&quot;)) {</span>
+<span class="nc" id="L201">                                throw new TeachingAssignmentImportException(&quot;Cần nhập đầy đủ dữ liệu cho các cột đã tạo ra&quot;);</span>
+                            }
+<span class="nc" id="L203">                            String[] s = teacherCodeTeacherName.split(&quot;\\-&quot;);</span>
+<span class="nc" id="L204">                            teacherCode = s[0];</span>
+<span class="nc" id="L205">                            teacherName = s[1].trim();</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">                            if (teacherRepository.findByCode(teacherCode).size() == 0) {</span>
+<span class="nc" id="L207">                                throw new TeachingAssignmentImportException(&quot;Mã giáo viên &quot; + teacherCode + &quot; ở dòng &quot; + (rowNumber + 2) + &quot; không tồn tại&quot;);</span>
+                            } else {
+<span class="nc bnc" id="L209" title="All 2 branches missed.">                                if (!teacherRepository.findByCode(teacherCode).get(0).getFullName().equals(teacherName)) {</span>
+<span class="nc" id="L210">                                    throw new TeachingAssignmentImportException(&quot;Tên giáo viên: &quot; + teacherName + &quot; đang không đúng với mã giáo viên: &quot; + teacherCode + &quot; ở dòng &quot; + (rowNumber + 2));</span>
+                                }
+                            }
+                        }
+<span class="nc bnc" id="L214" title="All 2 branches missed.">                        if (cellIdx == 2) {</span>
+<span class="nc" id="L215">                            semester1 = currentCell.getStringCellValue();</span>
+                        }
+<span class="nc bnc" id="L217" title="All 2 branches missed.">                        if (semesterAmount == 2) {</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">                            if (cellIdx == 3) {</span>
+
+<span class="nc" id="L220">                                semester2 = currentCell.getStringCellValue();</span>
+                            }
+                        } else {
+<span class="nc" id="L223">                            semester2 = null;</span>
+                        }
+<span class="nc" id="L225">                        cellIdx++;</span>
+<span class="nc" id="L226">                    }</span>
+                }
+<span class="nc" id="L228">                ServiceResult&lt;Boolean&gt; result = updateDataImport(teacherCode, semester1, semester2, years, rowNumber + 2);</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">                if (result.getStatus() == HttpStatus.BAD_REQUEST) {</span>
+<span class="nc" id="L230">                    return result;</span>
+                }
+<span class="nc" id="L232">                rowNumber++;</span>
+<span class="nc" id="L233">            }</span>
+<span class="nc" id="L234">        } else {</span>
+<span class="nc" id="L235">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;File không đúng định dạng&quot;, null);</span>
+        }
+<span class="nc" id="L237">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Import file thành công&quot;, null);</span>
+    }
+
+    public ServiceResult&lt;Boolean&gt; updateDataImport(String teacherCode, String semester1, String semester2, String year, Integer rowNumber) throws TeachingAssignmentImportException {
+<span class="nc" id="L241">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L243" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L244">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L246">            username = principal.toString();</span>
+        }
+
+<span class="nc" id="L249">        List&lt;SchoolYear&gt; schoolYear = schoolYearRespository.getSchoolYearByYearsOrderBySemesterAsc(year);</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">        if (!semester1.trim().isEmpty()) {</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">            if (!semester1.endsWith(&quot;)&quot;)) {</span>
+<span class="nc" id="L252">                throw new TeachingAssignmentImportException(&quot;Dòng &quot; + rowNumber + &quot;cột Phân công Giảng dạy Học kỳ I đang nhập sai định dạng&quot;);</span>
+                //         return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;cột Phân công Giảng dạy Học kỳ I đang nhập sai định dạng&quot;, null);
+            }
+<span class="nc" id="L255">            String[] lstSemester1 = semester1.split(&quot;\\+&quot;);//Toan(6A3,7A3)+HH(7A2,8A2)+HH(7A2,8A2)</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">            for (String a : lstSemester1) {//lstSemester1=[&quot;Toan(6A3,7A3)&quot;,&quot;HH(7A2,8A2)&quot;,&quot;HH(7A2,8A2)&quot;]   a=Toan(6A3,7A3)</span>
+<span class="nc" id="L257">                List&lt;String&gt; lstSubject1 = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L258">                String[] b = a.split(&quot;\\(&quot;);</span>
+<span class="nc" id="L259">                lstSubject1.add(b[0]); //add Toan vao lstSubject1</span>
+<span class="nc" id="L260">                String[] classCode = b[1].split(&quot;\\,&quot;);   //b[1]=6A3,7A3)</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">                if (!subjectsRepository.isExistForSubjectByCode(lstSubject1.get(0).trim())) {</span>
+                    // return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, môn học : &quot; + lstSubject1.get(0).trim() + &quot; không tồn tại&quot;, null);
+<span class="nc" id="L263">                    throw new TeachingAssignmentImportException(&quot;Dòng &quot; + rowNumber + &quot;, môn học : &quot; + lstSubject1.get(0).trim() + &quot; không tồn tại&quot;);</span>
+                }
+<span class="nc bnc" id="L265" title="All 2 branches missed.">                for (String d : classCode) {// vong for cho classCode classCode =[&quot;6A3&quot;,&quot;7A3)&quot;]</span>
+<span class="nc" id="L266">                    List&lt;String&gt; lstClass1 = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L267">                    int idx = d.lastIndexOf(&quot;)&quot;);</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">                    if (idx &gt; 0) {</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">                        if (!classRoomRepository.isExistForClassRoomByCode(d.substring(0, idx))) {</span>
+<span class="nc" id="L270">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, lớp học : &quot; + d.substring(0, idx) + &quot; không tồn tại&quot;, null);</span>
+                        }
+<span class="nc" id="L272">                        lstClass1.add(d.substring(0, idx));</span>
+                    } else {
+<span class="nc" id="L274">                        lstClass1.add(d);</span>
+                    }
+<span class="nc bnc" id="L276" title="All 2 branches missed.">                    if (!teacherRepository.isExistBySubjectCodeAndTeacherCode(teacherCode.trim(), lstSubject1.get(0))) {</span>
+<span class="nc" id="L277">                        throw new TeachingAssignmentImportException(&quot;Dòng &quot; + rowNumber + &quot;, giáo viên &quot; + teacherCode.trim() + &quot; không thuộc khoa ban của môn học &quot; + lstSubject1.get(0));</span>
+
+                        //      return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, giáo viên &quot; + teacherCode.trim() + &quot; không thuộc khoa ban của môn học &quot; + lstSubject1.get(0), null);
+                    }
+<span class="nc bnc" id="L281" title="All 2 branches missed.">                    if (!subjectClassRepository.findByClassCodeAndSubjectCodeSemester1(lstClass1.get(0).trim(), lstSubject1.get(0).trim()).isPresent()) {</span>
+<span class="nc" id="L282">                        throw new TeachingAssignmentImportException(&quot;Dòng &quot; + rowNumber + &quot;, môn học &quot; + lstSubject1.get(0) + &quot; chưa được cấu hình cho lớp &quot; + lstClass1.get(0) + &quot; ở học kỳ 1&quot;);</span>
+
+                        //   return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, môn học &quot; + lstSubject1.get(0) + &quot; chưa được cấu hình cho lớp &quot; + lstClass1.get(0) + &quot; ở học kỳ 1&quot;, null);
+                    }
+<span class="nc" id="L286">                    TeachingAssignment teachingAssignment = new TeachingAssignment();</span>
+<span class="nc" id="L287">                    teachingAssignment.setTeacherCode(teacherCode.trim());</span>
+<span class="nc" id="L288">                    teachingAssignment.setYear(year);</span>
+<span class="nc" id="L289">                    teachingAssignment.setSubjectCode(lstSubject1.get(0).trim());</span>
+<span class="nc" id="L290">                    teachingAssignment.setClassCode(lstClass1.get(0).trim());</span>
+<span class="nc" id="L291">                    teachingAssignment.setSemester1(1);</span>
+<span class="nc" id="L292">                    teachingAssignment.setSemester2(0);</span>
+<span class="nc" id="L293">                    teachingAssignment.setApplyAllSemester(0);</span>
+<span class="nc" id="L294">                    List&lt;TeachingAssignment&gt; check = teachingAssignmentRepository.findBySubjectCodeAndClassCode(lstSubject1.get(0).trim(), lstClass1.get(0).trim());</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">                    if (!check.isEmpty()) {</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">                        if (teachingAssignment.getTeacherCode().equals(check.get(0).getTeacherCode())) {</span>
+<span class="nc" id="L297">                            teachingAssignment.setId(check.get(0).getId());</span>
+<span class="nc" id="L298">                            teachingAssignment.setCode(check.get(0).getCode());</span>
+
+<span class="nc bnc" id="L300" title="All 4 branches missed.">                            if (check.get(0).getSemester2() != null &amp;&amp; check.get(0).getSemester2() != 0) {</span>
+<span class="nc" id="L301">                                teachingAssignment.setSemester2(check.get(0).getSemester2());</span>
+<span class="nc" id="L302">                                teachingAssignment.setApplyAllSemester(1);</span>
+                            }
+<span class="nc bnc" id="L304" title="All 2 branches missed.">                            if (schoolYear.get(0).getSemesterAmount() == 1) {</span>
+<span class="nc" id="L305">                                teachingAssignment.setApplyAllSemester(1);</span>
+                            }
+<span class="nc" id="L307">                            teachingAssignment.setCreateDate(check.get(0).getCreateDate());</span>
+<span class="nc" id="L308">                            teachingAssignment.setCreator(check.get(0).getCreator());</span>
+<span class="nc" id="L309">                            teachingAssignment.setUpdateDate(LocalDate.now());</span>
+<span class="nc" id="L310">                            teachingAssignment.setUpdater(username);</span>
+                        } else {
+<span class="nc bnc" id="L312" title="All 2 branches missed.">                            if (check.get(0).getSemester1()==0) {</span>
+<span class="nc" id="L313">                                teachingAssignment.setCode(&quot;ts_&quot; + new Date().getTime());</span>
+<span class="nc" id="L314">                                teachingAssignment.setCreateDate(LocalDate.now());</span>
+<span class="nc" id="L315">                                teachingAssignment.setCreator(username);</span>
+                            }
+<span class="nc bnc" id="L317" title="All 2 branches missed.">                            if (check.get(0).getSemester1()==1) {</span>
+<span class="nc" id="L318">                                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, môn học &quot; + check.get(0).getSubjectCode() + &quot; lớp &quot; + check.get(0).getClassCode() + &quot; đã được phân công cho giáo viên &quot; + check.get(0).getTeacherCode() + &quot; ở học kỳ 1&quot;, null);</span>
+                            }
+                        }
+                    }
+<span class="nc bnc" id="L322" title="All 2 branches missed.">                    if (check.isEmpty()) {</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">                        if (schoolYear.get(0).getSemesterAmount() == 1)</span>
+<span class="nc" id="L324">                            teachingAssignment.setApplyAllSemester(1);</span>
+<span class="nc" id="L325">                        teachingAssignment.setCode(&quot;ts_&quot; + new Date().getTime());</span>
+<span class="nc" id="L326">                        teachingAssignment.setCreateDate(LocalDate.now());</span>
+<span class="nc" id="L327">                        teachingAssignment.setCreator(username);</span>
+                    }
+<span class="nc" id="L329">                    teachingAssignmentRepository.save(teachingAssignment);</span>
+                }
+            }
+        }
+<span class="nc bnc" id="L333" title="All 2 branches missed.">        if (schoolYearRespository.getSemesterAmount(year)==2) {</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">            if (!semester2.trim().isEmpty()) {</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">                if (!semester2.endsWith(&quot;)&quot;)) {</span>
+<span class="nc" id="L336">                    throw new TeachingAssignmentImportException(&quot;Dòng &quot; + rowNumber + &quot;cột Phân công Giảng dạy Học kỳ II đang nhập sai định dạng&quot;);</span>
+                    //  return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;cột Phân công Giảng dạy Học kỳ II đang nhập sai định dạng&quot;, null);
+                }
+<span class="nc" id="L339">                String[] lstSemester2 = semester2.split(&quot;\\+&quot;);</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">                for (String a : lstSemester2) {</span>
+<span class="nc" id="L341">                    List&lt;String&gt; lstSubject2 = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L343">                    String[] b = a.split(&quot;\\(&quot;);</span>
+<span class="nc" id="L344">                    lstSubject2.add(b[0]);</span>
+<span class="nc" id="L345">                    String[] classCode = b[1].split(&quot;\\,&quot;);</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">                    if (!subjectsRepository.isExistForSubjectByCode(lstSubject2.get(0).trim())) {</span>
+<span class="nc" id="L347">                        throw new TeachingAssignmentImportException(&quot;Dòng &quot; + rowNumber + &quot;, môn học : &quot; + lstSubject2.get(0).trim() + &quot; không tồn tại&quot;);</span>
+                        //return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, môn học : &quot; + lstSubject2.get(0).trim() + &quot; không tồn tại&quot;, null);
+                    }
+<span class="nc bnc" id="L350" title="All 2 branches missed.">                    for (String d : classCode) {</span>
+<span class="nc" id="L351">                        List&lt;String&gt; lstClass2 = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L352">                        int idx = d.lastIndexOf(&quot;)&quot;);</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">                        if (idx &gt; 0) {</span>
+<span class="nc bnc" id="L354" title="All 2 branches missed.">                            if (!classRoomRepository.isExistForClassRoomByCode(d.substring(0, idx))) {</span>
+<span class="nc" id="L355">                                throw new TeachingAssignmentImportException(&quot;Dòng &quot; + rowNumber + &quot;, lớp học : &quot; + d.substring(0, idx) + &quot; không tồn tại&quot;);</span>
+                                // return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, lớp học : &quot; + d.substring(0, idx) + &quot; không tồn tại&quot;, null);
+                            }
+<span class="nc" id="L358">                            lstClass2.add(d.substring(0, idx));</span>
+                        } else {
+<span class="nc" id="L360">                            lstClass2.add(d);</span>
+                        }
+<span class="nc bnc" id="L362" title="All 2 branches missed.">                        if (!teacherRepository.isExistBySubjectCodeAndTeacherCode(teacherCode.trim(), lstSubject2.get(0))) {</span>
+<span class="nc" id="L363">                            throw new TeachingAssignmentImportException(&quot;Dòng &quot; + rowNumber + &quot;, giáo viên &quot; + teacherCode.trim() + &quot; không thuộc khoa ban của môn học &quot;);</span>
+                            //return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, giáo viên &quot; + teacherCode.trim() + &quot; không thuộc khoa ban của môn học &quot; + lstSubject2.get(0), null);
+                        }
+<span class="nc bnc" id="L366" title="All 2 branches missed.">                        if (!subjectClassRepository.findByClassCodeAndSubjectCodeSemester2(lstClass2.get(0).trim(), lstSubject2.get(0).trim()).isPresent()) {</span>
+<span class="nc" id="L367">                            throw new TeachingAssignmentImportException(&quot;Dòng &quot; + rowNumber + &quot;, môn học &quot; + lstSubject2.get(0) + &quot; chưa được cấu hình cho lớp &quot; + lstClass2.get(0) + &quot; ở học kỳ 2&quot;);</span>
+                            //  return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, môn học &quot; + lstSubject2.get(0) + &quot; chưa được cấu hình cho lớp &quot; + lstClass2.get(0) + &quot; ở học kỳ 2&quot;, null);
+                        }
+<span class="nc" id="L370">                        TeachingAssignment teachingAssignment = new TeachingAssignment();</span>
+<span class="nc" id="L371">                        teachingAssignment.setTeacherCode(teacherCode.trim());</span>
+<span class="nc" id="L372">                        teachingAssignment.setYear(year);</span>
+<span class="nc" id="L373">                        teachingAssignment.setSubjectCode(lstSubject2.get(0).trim());</span>
+<span class="nc" id="L374">                        teachingAssignment.setClassCode(lstClass2.get(0).trim());</span>
+<span class="nc" id="L375">                        teachingAssignment.setSemester2(1);</span>
+<span class="nc" id="L376">                        teachingAssignment.setSemester1(0);</span>
+<span class="nc" id="L377">                        teachingAssignment.setApplyAllSemester(0);</span>
+<span class="nc" id="L378">                        List&lt;TeachingAssignment&gt; check = teachingAssignmentRepository.findBySubjectCodeAndClassCode(lstSubject2.get(0).trim(), lstClass2.get(0).trim());</span>
+<span class="nc bnc" id="L379" title="All 2 branches missed.">                        if (!check.isEmpty()) {</span>
+<span class="nc bnc" id="L380" title="All 2 branches missed.">                            if (teachingAssignment.getTeacherCode().equals(check.get(0).getTeacherCode())) {</span>
+<span class="nc" id="L381">                                teachingAssignment.setId(check.get(0).getId());</span>
+<span class="nc" id="L382">                                teachingAssignment.setCode(check.get(0).getCode());</span>
+
+<span class="nc bnc" id="L384" title="All 4 branches missed.">                                if (check.get(0).getSemester1() != null &amp;&amp; check.get(0).getSemester1() != 0) {</span>
+<span class="nc" id="L385">                                    teachingAssignment.setSemester1(check.get(0).getSemester1());</span>
+<span class="nc" id="L386">                                    teachingAssignment.setApplyAllSemester(1);</span>
+                                }
+<span class="nc" id="L388">                                teachingAssignment.setCreateDate(check.get(0).getCreateDate());</span>
+<span class="nc" id="L389">                                teachingAssignment.setCreator(check.get(0).getCreator());</span>
+<span class="nc" id="L390">                                teachingAssignment.setUpdateDate(LocalDate.now());</span>
+<span class="nc" id="L391">                                teachingAssignment.setUpdater(username);</span>
+                            } else {
+<span class="nc bnc" id="L393" title="All 2 branches missed.">                                if (check.get(0).getSemester2()==0) {</span>
+<span class="nc" id="L394">                                    teachingAssignment.setCode(&quot;ts_&quot; + new Date().getTime());</span>
+<span class="nc" id="L395">                                    teachingAssignment.setCreateDate(LocalDate.now());</span>
+<span class="nc" id="L396">                                    teachingAssignment.setCreator(username);</span>
+                                }
+<span class="nc bnc" id="L398" title="All 2 branches missed.">                                if (check.get(0).getSemester2()==1) {</span>
+<span class="nc" id="L399">                                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + rowNumber + &quot;, môn học &quot; + check.get(0).getSubjectCode() + &quot; lớp &quot; + check.get(0).getClassCode() + &quot; đã được phân công cho giáo viên &quot; + check.get(0).getTeacherCode() + &quot; ở học kỳ 2&quot;, null);</span>
+                                }
+                            }
+                        }
+<span class="nc bnc" id="L403" title="All 2 branches missed.">                        if (check.isEmpty()) {</span>
+<span class="nc" id="L404">                            teachingAssignment.setCode(&quot;ts_&quot; + new Date().getTime());</span>
+<span class="nc" id="L405">                            teachingAssignment.setCreateDate(LocalDate.now());</span>
+<span class="nc" id="L406">                            teachingAssignment.setCreator(username);</span>
+
+                        }
+<span class="nc" id="L409">                        teachingAssignmentRepository.save(teachingAssignment);</span>
+                    }
+                }
+            }
+        }
+<span class="nc" id="L414">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật phân công giảng dạy thành công&quot;, null);</span>
+    }
+
+    public Boolean isExcelFormat(MultipartFile file) {
+<span class="nc" id="L418">        return file.getContentType().equals(&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;);</span>
+    }
+
+    @Override
+    public ByteArrayInputStream exportExcel(String year) {
+<span class="nc" id="L423">        ByteArrayInputStream in = export(year);</span>
+<span class="nc" id="L424">        return in;</span>
+    }
+
+    public ByteArrayInputStream export(String years) {
+        try {
+<span class="nc" id="L429">            Workbook workbook = new XSSFWorkbook();</span>
+<span class="nc" id="L430">            Sheet teachingAssignmentSheet = workbook.createSheet(&quot;teachingAssignment&quot;);</span>
+
+<span class="nc" id="L432">            CellStyle commonStyle = workbook.createCellStyle();</span>
+<span class="nc" id="L433">            commonStyle.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L434">            commonStyle.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+<span class="nc" id="L435">            teachingAssignmentSheet.createRow(0).createCell(0).setCellValue(&quot;DANH SÁCH PHÂN CÔNG GIẢNG DẠY&quot;);</span>
+<span class="nc" id="L436">            teachingAssignmentSheet.getRow(0).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L437">            teachingAssignmentSheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 3));</span>
+
+<span class="nc" id="L439">            teachingAssignmentSheet.createRow(1).createCell(0).setCellValue(&quot;Năm học : &quot; + years);</span>
+<span class="nc" id="L440">            teachingAssignmentSheet.getRow(1).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L441">            teachingAssignmentSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 3));</span>
+<span class="nc" id="L442">            teachingAssignmentSheet.createRow(2);</span>
+            //row 3
+<span class="nc" id="L444">            teachingAssignmentSheet.createRow(3);</span>
+<span class="nc" id="L445">            teachingAssignmentSheet.getRow(3).createCell(0).setCellValue(&quot;STT&quot;);</span>
+<span class="nc" id="L446">            teachingAssignmentSheet.getRow(3).createCell(1).setCellValue(&quot;Giáo viên giảng dạy&quot;);</span>
+<span class="nc" id="L447">            teachingAssignmentSheet.getRow(3).createCell(2).setCellValue(&quot;Phân công Giảng dạy Học kỳ I&quot;);</span>
+<span class="nc" id="L448">            Integer semesterAmount = schoolYearRespository.getSemesterAmount(years);</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">            if (semesterAmount == 2) {</span>
+<span class="nc" id="L450">                teachingAssignmentSheet.getRow(3).createCell(3).setCellValue(&quot;Phân công Giảng dạy Học kỳ II&quot;);</span>
+<span class="nc" id="L451">                teachingAssignmentSheet.getRow(3).getCell(3).setCellStyle(commonStyle);</span>
+            }
+<span class="nc" id="L453">            teachingAssignmentSheet.getRow(3).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L454">            teachingAssignmentSheet.getRow(3).getCell(1).setCellStyle(commonStyle);</span>
+<span class="nc" id="L455">            teachingAssignmentSheet.getRow(3).getCell(2).setCellStyle(commonStyle);</span>
+
+            //row 4
+<span class="nc" id="L458">            teachingAssignmentSheet.createRow(4);</span>
+<span class="nc" id="L459">            teachingAssignmentSheet.getRow(4).createCell(0).setCellValue(&quot;1&quot;);</span>
+<span class="nc" id="L460">            teachingAssignmentSheet.getRow(4).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L461">            teachingAssignmentSheet.getRow(4).createCell(1);</span>
+<span class="nc" id="L462">            teachingAssignmentSheet.getRow(4).createCell(2);</span>
+<span class="nc" id="L463">            teachingAssignmentSheet.getRow(4).createCell(3);</span>
+<span class="nc" id="L464">            teachingAssignmentSheet.getRow(4).getCell(2).setCellValue(&quot;AN9(L1B1)+KT9(L1C1)&quot;);</span>
+<span class="nc bnc" id="L465" title="All 2 branches missed.">            if (semesterAmount == 2) {</span>
+<span class="nc" id="L466">                teachingAssignmentSheet.getRow(4).getCell(3).setCellValue(&quot;AN9(L1B1)+KT9(L1C1)&quot;);</span>
+            }
+            //row 5
+<span class="nc bnc" id="L469" title="All 2 branches missed.">            for (int i = 5; i &lt; 20; i++) {</span>
+<span class="nc" id="L470">                teachingAssignmentSheet.createRow(i);</span>
+<span class="nc" id="L471">                teachingAssignmentSheet.getRow(i).createCell(0).setCellValue(i - 3);</span>
+<span class="nc" id="L472">                teachingAssignmentSheet.getRow(i).createCell(1);</span>
+<span class="nc" id="L473">                teachingAssignmentSheet.getRow(i).createCell(2);</span>
+<span class="nc" id="L474">                teachingAssignmentSheet.getRow(i).createCell(3);</span>
+<span class="nc" id="L475">                teachingAssignmentSheet.getRow(i).getCell(0).setCellStyle(commonStyle);</span>
+            }
+<span class="nc" id="L477">            List&lt;Map&lt;String, Object&gt;&gt; teacherList = teacherRepository.getAllTeacher();</span>
+<span class="nc" id="L478">            String[] selectedValues = new String[teacherList.size()];</span>
+<span class="nc bnc" id="L479" title="All 2 branches missed.">            for (int x = 0; x &lt; teacherList.size(); x++) {</span>
+<span class="nc" id="L480">                selectedValues[x] = teacherList.get(x).get(&quot;code&quot;).toString() + &quot; - &quot; + teacherList.get(x).get(&quot;full_name&quot;).toString();</span>
+            }
+<span class="nc" id="L482">            DataValidation dataValidation = null;</span>
+<span class="nc" id="L483">            DataValidationConstraint constraint = null;</span>
+<span class="nc" id="L484">            DataValidationHelper validationHelper = null;</span>
+
+<span class="nc" id="L486">            validationHelper = new XSSFDataValidationHelper((XSSFSheet) teachingAssignmentSheet);</span>
+<span class="nc" id="L487">            CellRangeAddressList addressList = new CellRangeAddressList(4, 19, 1, 1);</span>
+<span class="nc" id="L488">            constraint = validationHelper.createExplicitListConstraint(selectedValues);</span>
+<span class="nc" id="L489">            dataValidation = validationHelper.createValidation(constraint, addressList);</span>
+<span class="nc" id="L490">            dataValidation.setSuppressDropDownArrow(true);</span>
+<span class="nc" id="L491">            teachingAssignmentSheet.addValidationData(dataValidation);</span>
+<span class="nc bnc" id="L492" title="All 2 branches missed.">            if (semesterAmount == 2) {</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">                for (int j = 0; j &lt; 4; j++) {</span>
+<span class="nc" id="L494">                    teachingAssignmentSheet.autoSizeColumn(j);</span>
+                }
+            } else {
+<span class="nc bnc" id="L497" title="All 2 branches missed.">                for (int j = 0; j &lt; 3; j++) {</span>
+<span class="nc" id="L498">                    teachingAssignmentSheet.autoSizeColumn(j);</span>
+                }
+            }
+<span class="nc" id="L501">            CellStyle cellStyle = workbook.createCellStyle();</span>
+<span class="nc" id="L502">            cellStyle.setTopBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L503">            cellStyle.setRightBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L504">            cellStyle.setBottomBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L505">            cellStyle.setLeftBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L506">            cellStyle.setBorderTop(BorderStyle.THIN);</span>
+<span class="nc" id="L507">            cellStyle.setBorderBottom(BorderStyle.THIN);</span>
+<span class="nc" id="L508">            cellStyle.setBorderLeft(BorderStyle.THIN);</span>
+<span class="nc" id="L509">            cellStyle.setBorderRight(BorderStyle.THIN);</span>
+
+<span class="nc bnc" id="L511" title="All 2 branches missed.">            for (int i = 3; i &lt; 20; i++) {</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">                if (semesterAmount == 2) {</span>
+<span class="nc bnc" id="L513" title="All 2 branches missed.">                    for (int j = 0; j &lt; 4; j++) {</span>
+<span class="nc" id="L514">                        teachingAssignmentSheet.getRow(i).getCell(j).setCellStyle(cellStyle);</span>
+                    }
+                } else {
+<span class="nc bnc" id="L517" title="All 2 branches missed.">                    for (int j = 0; j &lt; 3; j++) {</span>
+<span class="nc" id="L518">                        teachingAssignmentSheet.getRow(i).getCell(j).setCellStyle(cellStyle);</span>
+                    }
+                }
+            }
+<span class="nc" id="L522">            cellStyle.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L523">            cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+<span class="nc" id="L524">            teachingAssignmentSheet.getRow(3).getCell(0).setCellStyle(cellStyle);</span>
+<span class="nc" id="L525">            teachingAssignmentSheet.getRow(3).getCell(1).setCellStyle(cellStyle);</span>
+<span class="nc" id="L526">            teachingAssignmentSheet.getRow(3).getCell(2).setCellStyle(cellStyle);</span>
+<span class="nc bnc" id="L527" title="All 2 branches missed.">            if (semesterAmount == 2) {</span>
+<span class="nc" id="L528">                teachingAssignmentSheet.getRow(3).getCell(3).setCellStyle(cellStyle);</span>
+            }
+<span class="nc" id="L530">            teachingAssignmentSheet.setColumnWidth(1, 40 * 256);</span>
+<span class="nc" id="L531">            ByteArrayOutputStream out = new ByteArrayOutputStream();</span>
+<span class="nc" id="L532">            workbook.write(out);</span>
+<span class="nc" id="L533">            workbook.close();</span>
+
+<span class="nc" id="L535">            return new ByteArrayInputStream(out.toByteArray());</span>
+<span class="nc" id="L536">        } catch (Exception e) {</span>
+<span class="nc" id="L537">            e.printStackTrace();</span>
+<span class="nc" id="L538">            throw new ValidationException(&quot;file&quot;, &quot;Không thể export file &quot;);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getClassSubjectByYearAndSemesterAndTeacherCode(String teacherCode, String year, Integer semester) {
+<span class="nc" id="L544">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L546">            List&lt;Map&lt;String, Object&gt;&gt; classCodeSubjectCode = teachingAssignmentRepository.getClassSubjectByYearAndSemesterAndTeacherCode(teacherCode, year, semester);</span>
+<span class="nc" id="L547">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L548">            output.put(&quot;classCodeSubjectCode&quot;, classCodeSubjectCode);</span>
+<span class="nc" id="L549">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L550">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L551">            serviceResult.setData(output);</span>
+<span class="nc" id="L552">        } catch (Exception e) {</span>
+<span class="nc" id="L553">            e.printStackTrace();</span>
+<span class="nc" id="L554">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L555">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L556">        }</span>
+<span class="nc" id="L557">        return serviceResult;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

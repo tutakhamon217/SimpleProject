@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SchoolYearServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">SchoolYearServiceImpl.java</span></div><h1>SchoolYearServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.form_data.SchoolYearForm;
+import fpt.capstone.payroll.ValidationException;
+import fpt.capstone.entities.SchoolYear;
+import fpt.capstone.entities.ServiceResult;
+
+import fpt.capstone.repository.ScheduleTimetableRepository;
+import fpt.capstone.repository.SchoolYearRespository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.Year;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
+
+
+@Service
+@Transactional
+<span class="fc" id="L34">public class SchoolYearServiceImpl implements SchoolYearService {</span>
+
+    @Autowired
+    private SchoolYearRespository schoolYearRepository;
+
+    @Autowired
+    private ScheduleTimetableRepository scheduleTimetableRepository;
+
+
+    @Override
+    public &lt;S extends SchoolYear&gt; List&lt;S&gt; saveAll(Iterable&lt;S&gt; entities) {
+<span class="nc" id="L45">        return schoolYearRepository.saveAll(entities);</span>
+    }
+
+    @Override
+    public List&lt;SchoolYear&gt; getSchoolYearByYears(String years) {
+<span class="nc" id="L50">        return schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(years);</span>
+    }
+
+
+    @Override
+    public void deleteSchoolYear(SchoolYear schoolYear) {
+<span class="nc" id="L56">        schoolYearRepository.delete(schoolYear);</span>
+<span class="nc" id="L57">    }</span>
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllSchoolYearPaging() {
+<span class="nc" id="L61">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L63">            List&lt;Map&lt;String, Object&gt;&gt; all = schoolYearRepository.findAllGroupYear();</span>
+
+<span class="nc" id="L65">            List&lt;Map&lt;String, Object&gt;&gt; collect = all.stream().map(x -&gt; {</span>
+<span class="nc" id="L66">                Map&lt;String, Object&gt; data = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L67">                data.put(&quot;year&quot;, x.get(&quot;years&quot;));</span>
+<span class="nc" id="L68">                data.put(&quot;semesterAmount&quot;, x.get(&quot;semester_amount&quot;));</span>
+<span class="nc" id="L69">                data.put(&quot;canUpdate&quot;, x.get(&quot;canUpdate&quot;));</span>
+<span class="nc" id="L70">                data.put(&quot;semesters&quot;, schoolYearRepository.getSemesterInfor(x.get(&quot;years&quot;).toString()));</span>
+<span class="nc" id="L71">                return data;</span>
+
+<span class="nc" id="L73">            }).collect(Collectors.toList());</span>
+<span class="nc" id="L74">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L75">            output.put(&quot;schoolYears&quot;, collect);</span>
+
+<span class="nc" id="L77">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L78">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L79">            serviceResult.setData(output);</span>
+<span class="nc" id="L80">        } catch (Exception e) {</span>
+<span class="nc" id="L81">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L82">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L83">        }</span>
+
+<span class="nc" id="L85">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; saveSchoolYear(SchoolYearForm schoolYearForm) {
+<span class="nc" id="L90">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L93">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L95">            username = principal.toString();</span>
+        }
+<span class="nc" id="L97">        int semesterAmount = Integer.parseInt(schoolYearForm.getSemesterAmount());</span>
+<span class="nc" id="L98">        List&lt;SchoolYear&gt; schoolYears = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L99">        String years = schoolYearForm.getYears();</span>
+<span class="nc" id="L100">        Integer yearCurrent = Integer.parseInt(Arrays.stream(years.split(&quot;-&quot;)).toArray()[1].toString());</span>
+<span class="nc" id="L101">        Integer yearNext = yearCurrent + 1;</span>
+<span class="nc" id="L102">        Integer yearPast1 = yearCurrent - 1;</span>
+<span class="nc" id="L103">        Integer yearPast2 = yearCurrent - 2;</span>
+<span class="nc" id="L104">        DateTimeFormatter ft = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);</span>
+<span class="nc" id="L105">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L106">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (LocalDateTime.parse(schoolYearForm.getToDate1(), ft).isBefore(LocalDateTime.parse(schoolYearForm.getFromDate1(), ft).plusDays(1))) {</span>
+<span class="nc" id="L108">            serviceResult.setMessage(&quot;Ngày bắt đầu học kỳ 1 không được vượt quá ngày kết thúc học kỳ 1&quot;);</span>
+<span class="nc" id="L109">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L110">            return serviceResult;</span>
+        }
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        if (schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(yearPast2 + &quot;-&quot; + yearPast1).size() &gt; 0) {</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            if (LocalDateTime.parse(schoolYearForm.getFromDate1(), ft).isBefore(schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(yearPast2 + &quot;-&quot; + yearPast1).get(schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(yearPast2 + &quot;-&quot; + yearPast1).size() - 1).getToDate().plusDays(1))) {</span>
+<span class="nc" id="L114">                serviceResult.setMessage(&quot;Ngày bắt đầu của năm học thêm mới không được trước ngày cuối cùng của năm học trước đó&quot;);</span>
+<span class="nc" id="L115">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L116">                return serviceResult;</span>
+            }
+        }
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (schoolYearForm.getSemesterAmount().equals(&quot;2&quot;)) {</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">            if (LocalDateTime.parse(schoolYearForm.getToDate1(), ft).isAfter(LocalDateTime.parse(schoolYearForm.getFromDate2(), ft))) {</span>
+<span class="nc" id="L121">                serviceResult.setMessage(&quot;Ngày bắt đầu học kỳ 2 không được trước ngày kết thúc học kỳ 1&quot;);</span>
+<span class="nc" id="L122">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L123">                return serviceResult;</span>
+            }
+<span class="nc bnc" id="L125" title="All 2 branches missed.">            if (LocalDateTime.parse(schoolYearForm.getToDate2(), ft).isBefore(LocalDateTime.parse(schoolYearForm.getFromDate2(), ft).plusDays(1))) {</span>
+<span class="nc" id="L126">                serviceResult.setMessage(&quot;Ngày bắt đầu học kỳ 2 không được vượt quá ngày kết thúc học kỳ 2&quot;);</span>
+<span class="nc" id="L127">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L128">                return serviceResult;</span>
+            }
+<span class="nc bnc" id="L130" title="All 2 branches missed.">            if (schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(yearCurrent + &quot;-&quot; + yearNext).size() &gt; 0) {</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">                if (LocalDateTime.parse(schoolYearForm.getToDate2(), ft).isAfter(schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(yearCurrent + &quot;-&quot; + yearNext).get(0).getFromDate())) {</span>
+<span class="nc" id="L132">                    serviceResult.setMessage(&quot;Ngày kết thúc học kỳ cuối của năm học thêm mới không được vượt quá ngày đầu tiên của năm tiếp theo &quot;);</span>
+<span class="nc" id="L133">                    serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L134">                    return serviceResult;</span>
+                }
+            }
+        } else {
+<span class="nc" id="L138">            System.out.println(yearCurrent + &quot;-&quot; + yearNext);</span>
+<span class="nc" id="L139">            System.out.println(schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(yearCurrent + &quot;-&quot; + yearNext).size());</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            if (schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(yearCurrent + &quot;-&quot; + yearNext).size() &gt; 0) {</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">                if (LocalDateTime.parse(schoolYearForm.getToDate1(), ft).isAfter(schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(yearCurrent + &quot;-&quot; + yearNext).get(0).getFromDate())) {</span>
+<span class="nc" id="L142">                    serviceResult.setMessage(&quot;Ngày kết thúc học kỳ cuối của năm học thêm mới không được vượt quá ngày đầu tiên của học kỳ 1 năm tiếp theo &quot;);</span>
+<span class="nc" id="L143">                    serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L144">                    return serviceResult;</span>
+                }
+            }
+        }
+
+        try {
+<span class="nc" id="L150">            schoolYears = getSchoolYearByYears(years);</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">            if (schoolYears.size() == 0) {</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">                if (schoolYearForm.getFromDate2() == null) {</span>
+<span class="nc" id="L153">                    schoolYears.add(new SchoolYear(schoolYearForm.getYears(), semesterAmount, 1 + &quot;&quot;, LocalDateTime.parse(schoolYearForm.getFromDate1(), ft)</span>
+<span class="nc" id="L154">                            , LocalDateTime.parse(schoolYearForm.getToDate1(), ft), LocalDateTime.now(), username, null, null));</span>
+                } else {
+<span class="nc" id="L156">                    schoolYears.add(new SchoolYear(schoolYearForm.getYears(), semesterAmount, 1 + &quot;&quot;, LocalDateTime.parse(schoolYearForm.getFromDate1(), ft)</span>
+<span class="nc" id="L157">                            , LocalDateTime.parse(schoolYearForm.getToDate1(), ft), LocalDateTime.now(), username, null, null));</span>
+<span class="nc" id="L158">                    schoolYears.add(new SchoolYear(schoolYearForm.getYears(), semesterAmount, 2 + &quot;&quot;, LocalDateTime.parse(schoolYearForm.getFromDate2(), ft)</span>
+<span class="nc" id="L159">                            , LocalDateTime.parse(schoolYearForm.getToDate2(), ft), LocalDateTime.now(), username, null, null));</span>
+                }
+            } else {
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                if (scheduleTimetableRepository.isExistedByYear(schoolYearForm.getYears())) {</span>
+<span class="nc" id="L163">                    serviceResult.setMessage(&quot;Năm học đã được xếp thời khóa biểu nên không thể cập nhật&quot;);</span>
+<span class="nc" id="L164">                    serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L165">                    serviceResult.setData(output);</span>
+<span class="nc" id="L166">                    return serviceResult;</span>
+                }
+                // LocalDateTime yearNow = LocalDateTime.now();
+                // if (schoolYears.size() == 1) {
+                //     if (!schoolYears.get(0).getFromDate().isBefore(yearNow)||!schoolYears.get(0).getToDate().isAfter(yearNow)) {
+                //         serviceResult.setMessage(&quot;Không thể cập nhật năm học đã diễn ra&quot;);
+                //         serviceResult.setStatus(HttpStatus.BAD_REQUEST);
+                //         serviceResult.setData(output);
+                //         return serviceResult;
+                //     }
+                // }
+                // else{
+                //     if (!schoolYears.get(0).getFromDate().isBefore(yearNow)||!schoolYears.get(1).getToDate().isAfter(yearNow)) {
+                //         serviceResult.setMessage(&quot;Không thể cập nhật năm học đã diễn ra&quot;);
+                //         serviceResult.setStatus(HttpStatus.BAD_REQUEST);
+                //         serviceResult.setData(output);
+                //         return serviceResult;
+                //     }
+                // }
+<span class="nc bnc" id="L185" title="All 2 branches missed.">                if (schoolYearForm.getSemesterAmount().equals(&quot;1&quot;)) {</span>
+<span class="nc" id="L186">                    schoolYears.get(0).setFromDate(LocalDateTime.parse(schoolYearForm.getFromDate1(), ft));</span>
+<span class="nc" id="L187">                    schoolYears.get(0).setSemesterAmount(1);</span>
+<span class="nc" id="L188">                    schoolYears.get(0).setToDate(LocalDateTime.parse(schoolYearForm.getToDate1(), ft));</span>
+<span class="nc" id="L189">                    schoolYears.get(0).setUpdateName(username);</span>
+<span class="nc" id="L190">                    schoolYears.get(0).setUpdateTime(LocalDateTime.now());</span>
+<span class="nc" id="L191">                    schoolYears.get(0).setSemesterAmount(Integer.parseInt(schoolYearForm.getSemesterAmount()));</span>
+                } else {
+<span class="nc bnc" id="L193" title="All 2 branches missed.">                    if (schoolYears.size() == 1) {</span>
+<span class="nc" id="L194">                        schoolYears.get(0).setFromDate(LocalDateTime.parse(schoolYearForm.getFromDate1(), ft));</span>
+<span class="nc" id="L195">                        schoolYears.get(0).setToDate(LocalDateTime.parse(schoolYearForm.getToDate1(), ft));</span>
+<span class="nc" id="L196">                        schoolYears.get(0).setUpdateName(username);</span>
+<span class="nc" id="L197">                        schoolYears.get(0).setUpdateTime(LocalDateTime.now());</span>
+<span class="nc" id="L198">                        schoolYears.get(0).setSemesterAmount(Integer.parseInt(schoolYearForm.getSemesterAmount()));</span>
+<span class="nc" id="L199">                        schoolYears.add(new SchoolYear(schoolYearForm.getYears(), semesterAmount, 2 + &quot;&quot;, LocalDateTime.parse(schoolYearForm.getFromDate2(), ft)</span>
+<span class="nc" id="L200">                                , LocalDateTime.parse(schoolYearForm.getToDate2(), ft), LocalDateTime.now(), username, null, null));</span>
+                    } else {
+<span class="nc bnc" id="L202" title="All 2 branches missed.">                        if (schoolYears.get(0).getSemester().equals(&quot;1&quot;)) {</span>
+<span class="nc" id="L203">                            schoolYears.get(0).setFromDate(LocalDateTime.parse(schoolYearForm.getFromDate1(), ft));</span>
+<span class="nc" id="L204">                            schoolYears.get(0).setToDate(LocalDateTime.parse(schoolYearForm.getToDate1(), ft));</span>
+<span class="nc" id="L205">                            schoolYears.get(0).setUpdateName(username);</span>
+<span class="nc" id="L206">                            schoolYears.get(0).setUpdateTime(LocalDateTime.now());</span>
+<span class="nc" id="L207">                            schoolYears.get(0).setSemesterAmount(Integer.parseInt(schoolYearForm.getSemesterAmount()));</span>
+
+<span class="nc" id="L209">                            schoolYears.get(1).setFromDate(LocalDateTime.parse(schoolYearForm.getFromDate2(), ft));</span>
+<span class="nc" id="L210">                            schoolYears.get(1).setToDate(LocalDateTime.parse(schoolYearForm.getToDate2(), ft));</span>
+<span class="nc" id="L211">                            schoolYears.get(1).setUpdateName(username);</span>
+<span class="nc" id="L212">                            schoolYears.get(1).setUpdateTime(LocalDateTime.now());</span>
+<span class="nc" id="L213">                            schoolYears.get(1).setSemesterAmount(Integer.parseInt(schoolYearForm.getSemesterAmount()));</span>
+
+                        } else {
+<span class="nc" id="L216">                            schoolYears.get(1).setFromDate(LocalDateTime.parse(schoolYearForm.getFromDate1(), ft));</span>
+<span class="nc" id="L217">                            schoolYears.get(1).setToDate(LocalDateTime.parse(schoolYearForm.getToDate1()));</span>
+<span class="nc" id="L218">                            schoolYears.get(1).setUpdateName(username);</span>
+<span class="nc" id="L219">                            schoolYears.get(1).setUpdateTime(LocalDateTime.now());</span>
+<span class="nc" id="L220">                            schoolYears.get(1).setSemesterAmount(Integer.parseInt(schoolYearForm.getSemesterAmount()));</span>
+<span class="nc" id="L221">                            schoolYears.get(0).setSemesterAmount(Integer.parseInt(schoolYearForm.getSemesterAmount()));</span>
+<span class="nc" id="L222">                            schoolYears.get(0).setFromDate(LocalDateTime.parse(schoolYearForm.getFromDate2(), ft));</span>
+<span class="nc" id="L223">                            schoolYears.get(0).setToDate(LocalDateTime.parse(schoolYearForm.getToDate2(), ft));</span>
+<span class="nc" id="L224">                            schoolYears.get(0).setUpdateName(username);</span>
+<span class="nc" id="L225">                            schoolYears.get(0).setUpdateTime(LocalDateTime.now());</span>
+                        }
+                    }
+                }
+            }
+<span class="nc bnc" id="L230" title="All 2 branches missed.">            if (saveAll(schoolYears) != null) {</span>
+<span class="nc" id="L231">                output.put(&quot;saveResult&quot;, &quot;Thêm năm học thành công&quot;);</span>
+<span class="nc bnc" id="L232" title="All 4 branches missed.">                if (schoolYearForm.getFromDate2() == null &amp;&amp; schoolYears.size() == 2) {</span>
+<span class="nc" id="L233">                    schoolYearRepository.deleteById(schoolYears.get(1).getId());</span>
+                }
+            } else {
+<span class="nc" id="L236">                output.put(&quot;saveResult&quot;, &quot;Thêm năm học thất bại&quot;);</span>
+            }
+<span class="nc" id="L238">            serviceResult.setMessage(&quot;Thêm năm học thành công&quot;);</span>
+<span class="nc" id="L239">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L240">            serviceResult.setData(output);</span>
+
+<span class="nc" id="L242">        } catch (Exception e) {</span>
+<span class="nc" id="L243">            e.printStackTrace();</span>
+<span class="nc" id="L244">            serviceResult.setMessage(&quot;Thêm năm học thất bại&quot;);</span>
+<span class="nc" id="L245">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L246">        }</span>
+<span class="nc" id="L247">        return serviceResult;</span>
+
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;String&gt;&gt; getAllSchoolYears() {
+<span class="fc" id="L253">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;All school years&quot;, schoolYearRepository.getAllSchoolYear());</span>
+    }
+
+    @Override
+    public Map&lt;String, Object&gt; getSemesterAmount(String years) {
+<span class="fc" id="L258">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L259">        output.put(&quot;semesterAmount&quot;, schoolYearRepository.getSemesterAmount(years));</span>
+<span class="fc" id="L260">        return output;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; checkStartEndSemester(String years, Integer semester) {
+
+<span class="nc" id="L266">        LocalDateTime startDate = null;</span>
+<span class="nc" id="L267">        LocalDateTime endDate = null;</span>
+<span class="nc" id="L268">        Timestamp tmp = null;</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">        if (semester == 0) {</span>
+<span class="nc" id="L270">            List&lt;Map&lt;String, Object&gt;&gt; rangeDate = schoolYearRepository.getStartEndSemester(years, 1);</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">            if (rangeDate.size() == 0) {</span>
+<span class="nc" id="L272">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Semester range&quot;, null);</span>
+            }
+<span class="nc" id="L274">            tmp = (Timestamp) rangeDate.get(0).get(&quot;from_date&quot;);</span>
+<span class="nc" id="L275">            startDate = tmp.toLocalDateTime();</span>
+<span class="nc" id="L276">            tmp = (Timestamp) rangeDate.get(0).get(&quot;to_date&quot;);</span>
+<span class="nc" id="L277">            endDate = tmp.toLocalDateTime();</span>
+<span class="nc" id="L278">            rangeDate = schoolYearRepository.getStartEndSemester(years, 2);</span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">            if (rangeDate.size() &gt; 0) {</span>
+<span class="nc" id="L280">                tmp = (Timestamp) rangeDate.get(0).get(&quot;from_date&quot;);</span>
+<span class="nc" id="L281">                startDate = tmp.toLocalDateTime();</span>
+<span class="nc" id="L282">                tmp = (Timestamp) rangeDate.get(0).get(&quot;to_date&quot;);</span>
+<span class="nc" id="L283">                endDate = tmp.toLocalDateTime();</span>
+            }
+<span class="nc" id="L285">        } else {</span>
+<span class="nc" id="L286">            List&lt;Map&lt;String, Object&gt;&gt; rangeDate = schoolYearRepository.getStartEndSemester(years, semester);</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">            if (rangeDate.size() == 0) {</span>
+<span class="nc" id="L288">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Semester range&quot;, null);</span>
+            }
+
+
+<span class="nc" id="L292">            tmp = (Timestamp) rangeDate.get(0).get(&quot;from_date&quot;);</span>
+<span class="nc" id="L293">            startDate = tmp.toLocalDateTime();</span>
+<span class="nc" id="L294">            tmp = (Timestamp) rangeDate.get(0).get(&quot;to_date&quot;);</span>
+<span class="nc" id="L295">            endDate = tmp.toLocalDateTime();</span>
+            ;
+        }
+
+<span class="nc" id="L299">        DateTimeFormatter dtf = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy&quot;);</span>
+
+
+<span class="nc" id="L302">        LocalDateTime ltn = LocalDateTime.now();</span>
+
+<span class="nc bnc" id="L304" title="All 8 branches missed.">        if ((startDate.isBefore(ltn) || startDate.isEqual(ltn)) &amp;&amp; (endDate.isAfter(ltn) || endDate.isEqual(ltn))) {</span>
+<span class="nc" id="L305">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Semester range&quot;, null);</span>
+        } else {
+<span class="nc" id="L307">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thời gian đánh giá bắt đầu từ &quot; + dtf.format(startDate) + &quot; và kết thúc vào &quot; + dtf.format(endDate), null);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getCurrentSchoolyear() {
+<span class="nc" id="L313">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L314">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+        try {
+<span class="nc" id="L316">            int year = Year.now().getValue();</span>
+<span class="nc" id="L317">            int nextyear = year + 1;</span>
+<span class="nc" id="L318">            String schoolyear = year + &quot;-&quot; + nextyear;</span>
+<span class="nc" id="L319">            System.out.println(schoolyear);</span>
+<span class="nc" id="L320">            output.put(&quot;currentSchoolYear&quot;, schoolYearRepository.getSchoolYearByYearsOrderBySemesterAsc(schoolyear));</span>
+<span class="nc" id="L321">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L322">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L323">            serviceResult.setData(output);</span>
+<span class="nc" id="L324">        } catch (Exception e) {</span>
+<span class="nc" id="L325">            e.printStackTrace();</span>
+<span class="nc" id="L326">            serviceResult.setMessage(&quot;Lấy năm học hiện tại thất bại&quot;);</span>
+<span class="nc" id="L327">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L328">        }</span>
+<span class="nc" id="L329">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;SchoolYear&gt; getSchoolYear(String year, String semester) {
+<span class="fc" id="L334">        SchoolYear sy = schoolYearRepository.getSchoolYearOptional(year, semester).orElse(null);</span>
+<span class="fc" id="L335">        return new ServiceResult&lt;SchoolYear&gt;(HttpStatus.OK, &quot;school year&quot;, sy);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;SchoolYear&gt; getSchoolYearOf(String date) {
+<span class="fc" id="L340">        Date attendanceDate = null;</span>
+        try {
+<span class="fc" id="L342">            attendanceDate = (new SimpleDateFormat(&quot;yyyy-MM-dd&quot;)).parse(date);</span>
+<span class="fc" id="L343">        } catch (Exception e) {</span>
+<span class="fc" id="L344">            throw new ValidationException(&quot;date&quot;, &quot;ngày điểm danh không hợp lệ&quot;);</span>
+<span class="fc" id="L345">        }</span>
+<span class="fc" id="L346">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;school year&quot;, schoolYearRepository.getSemesterOf(attendanceDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()).orElse(null));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;String&gt;&gt; getSchoolYearOfHistoryStudent(String studentCode) {
+        try {
+<span class="nc" id="L352">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, schoolYearRepository.getSchoolYearOfHistoryStudent(studentCode));</span>
+<span class="nc" id="L353">        } catch (Exception e) {</span>
+<span class="nc" id="L354">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Lấy năm học thất bại&quot;, null);</span>
+        }
+    }
+
+    @Override
+
+    public ServiceResult&lt;List&lt;String&gt;&gt; getCurrentAndNextSchoolYear() {
+        try {
+<span class="nc" id="L362">            String currentYear = schoolYearRepository.getCurrentSchoolYear();</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">            if (null == currentYear) {</span>
+<span class="nc" id="L364">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Chưa có năm học hiện tại&quot;, null);</span>
+            }
+<span class="nc" id="L366">            Integer yearNow = Integer.parseInt(currentYear.substring(5, 9));</span>
+<span class="nc" id="L367">            Integer yearNext = yearNow + 1;</span>
+<span class="nc" id="L368">            List&lt;String&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L369">            result.add(currentYear);</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">            if (schoolYearRepository.getSchoolYearByYears(yearNow + &quot;-&quot; + yearNext).size() == 0) {</span>
+<span class="nc" id="L371">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;success&quot;, result);</span>
+            } else {
+<span class="nc" id="L373">                result.add(yearNow + &quot;-&quot; + yearNext);</span>
+<span class="nc" id="L374">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, result);</span>
+            }
+<span class="nc" id="L376">        } catch (Exception e) {</span>
+<span class="nc" id="L377">            e.printStackTrace();</span>
+<span class="nc" id="L378">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;fail&quot;, null);</span>
+        }
+    }
+
+    public ServiceResult&lt;SchoolYear&gt; getObjCurrentYear() {
+        try {
+<span class="nc" id="L384">            LocalDateTime now = LocalDateTime.now();</span>
+<span class="nc" id="L385">            List&lt;SchoolYear&gt; list = schoolYearRepository.getAllSchoolYearNoDistinct().get();</span>
+<span class="nc bnc" id="L386" title="All 2 branches missed.">            for (int i = 0; i &lt; list.size(); i++) {</span>
+<span class="nc" id="L387">                Optional&lt;SchoolYear&gt; schoolYear = schoolYearRepository.getSemesterOf(now);</span>
+<span class="nc" id="L388">                System.out.println(now);</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">                if (!schoolYear.equals(Optional.empty())) {</span>
+<span class="nc" id="L390">                    return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, schoolYear.get());</span>
+                }
+            }
+<span class="nc" id="L393">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không tồn tại năm học nào&quot;, null);</span>
+<span class="nc" id="L394">        } catch (Exception e) {</span>
+<span class="nc" id="L395">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không tồn tại năm học nào&quot;, null);</span>
+
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getRangeOfSemester(String year, Integer semester) {
+        try{
+<span class="nc" id="L403">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, schoolYearRepository.getRangeOfSemester(year, semester));</span>
+<span class="nc" id="L404">        }catch (Exception e){</span>
+<span class="nc" id="L405">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không tồn tại học kỳ này&quot;, null);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

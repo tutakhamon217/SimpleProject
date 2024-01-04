@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SubjectClassServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">SubjectClassServiceImpl.java</span></div><h1>SubjectClassServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.form_data.SubjectClassUpdate;
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.entities.SubjectClass;
+import fpt.capstone.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@Transactional
+<span class="fc" id="L21">public class SubjectClassServiceImpl implements SubjectClassService {</span>
+    @Autowired
+    private SubjectsRepository subjectsRepository;
+
+    @Autowired
+    private SubjectClassRepository subjectClassRepository;
+
+    @Autowired
+
+    private ClassRoomRepository classRoomRepository;
+
+    @Autowired
+    private DepartmentRepository departmentRepository;
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllSubjectClassPagingAndSearching(Integer classId, String nameCode,Integer gradeLevel,Integer deptId) {
+<span class="nc" id="L37">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L39">            List&lt;Map&lt;String, Object&gt;&gt; subjectClass = subjectClassRepository.getAllSubjectClassPagingAndSearching(classId, nameCode,gradeLevel,deptId);</span>
+<span class="nc" id="L40">            System.out.println(subjectClass.size());</span>
+<span class="nc" id="L41">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L42">            output.put(&quot;subjectClass&quot;, subjectClass);</span>
+<span class="nc" id="L43">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L44">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L45">            serviceResult.setData(output);</span>
+<span class="nc" id="L46">        } catch (Exception e) {</span>
+<span class="nc" id="L47">            e.printStackTrace();</span>
+<span class="nc" id="L48">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L49">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L50">        }</span>
+<span class="nc" id="L51">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; saveSubjectClass(List&lt;SubjectClassUpdate&gt; subjectClasses) {
+<span class="nc" id="L56">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L59">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L61">            username = principal.toString();</span>
+        }
+<span class="nc" id="L63">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">            for (SubjectClassUpdate s : subjectClasses) {</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">               if (s.getSubjectClassId()!=null){</span>
+<span class="nc" id="L67">                   SubjectClass sc = subjectClassRepository.getById(s.getSubjectClassId());</span>
+<span class="nc" id="L68">                   sc.setCoefficient(s.getCoefficient());</span>
+<span class="nc" id="L69">                   sc.setFlgSemester1(s.getFlgSemester1());</span>
+<span class="nc" id="L70">                   sc.setFlgSemester2(s.getFlgSemester2());</span>
+<span class="nc" id="L71">                   sc.setUpdateTime(LocalDateTime.now());</span>
+<span class="nc" id="L72">                   sc.setUpdateName(username);</span>
+<span class="nc" id="L73">                   subjectClassRepository.save(sc);</span>
+<span class="nc" id="L74">               }</span>
+               else {
+<span class="nc" id="L76">                   SubjectClass sc =new SubjectClass(s.getClassId(),s.getSubjectId(),s.getCoefficient(),s.getFlgSemester1(),s.getFlgSemester2(),LocalDateTime.now(),username,null,null);</span>
+<span class="nc" id="L77">                   subjectClassRepository.save(sc);</span>
+               }
+<span class="nc" id="L79">            }</span>
+<span class="nc" id="L80">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L81">            output.put(&quot;saveResult&quot;, true);</span>
+<span class="nc" id="L82">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L83">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L84">            serviceResult.setData(output);</span>
+<span class="nc" id="L85">        } catch (Exception e) {</span>
+<span class="nc" id="L86">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L87">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L88">        }</span>
+<span class="nc" id="L89">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getSubjectClassByClassIdSubjectIdSemester(Integer classId, Integer semester) {
+<span class="nc" id="L94">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L95">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L96">        List&lt;Map&lt;String, Object&gt;&gt; subjectClassResult = null;</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        if (semester == 0) {</span>
+<span class="nc" id="L98">            subjectClassResult = subjectClassRepository.findByClassIdAndSubjectIdSemester(classId, 1, 0);</span>
+<span class="nc" id="L99">            subjectClassResult.addAll(subjectClassRepository.findByClassIdAndSubjectIdSemester(classId, 1, 1));</span>
+<span class="nc" id="L100">            subjectClassResult.addAll(subjectClassRepository.findByClassIdAndSubjectIdSemester(classId, 0, 1));</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        } else if (semester == 1) {</span>
+<span class="nc" id="L102">            subjectClassResult= subjectClassRepository.findByClassIdAndSubjectIdSemester(classId, 1, 0);</span>
+<span class="nc" id="L103">            subjectClassResult.addAll(subjectClassRepository.findByClassIdAndSubjectIdSemester(classId, 1, 1));</span>
+        } else {
+<span class="nc" id="L105">            subjectClassResult= subjectClassRepository.findByClassIdAndSubjectIdSemester(classId, 0, 1);</span>
+<span class="nc" id="L106">            subjectClassResult.addAll(subjectClassRepository.findByClassIdAndSubjectIdSemester(classId, 1, 1));</span>
+        }
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (subjectClassResult.size() == 0) {</span>
+<span class="nc" id="L109">            serviceResult.setMessage(&quot;Dữ liệu rỗng&quot;);</span>
+<span class="nc" id="L110">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+        } else {
+<span class="nc" id="L112">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L113">            serviceResult.setStatus(HttpStatus.OK);</span>
+        }
+<span class="nc" id="L115">        output.put(&quot;subjectClass&quot;, subjectClassResult);</span>
+<span class="nc" id="L116">        serviceResult.setData(output);</span>
+<span class="nc" id="L117">        return serviceResult;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

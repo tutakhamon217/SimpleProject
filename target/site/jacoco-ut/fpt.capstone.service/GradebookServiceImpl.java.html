@@ -1,0 +1,1593 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GradebookServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">GradebookServiceImpl.java</span></div><h1>GradebookServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.entities.*;
+import fpt.capstone.form_data.ConfigGradeDetailIdListForm;
+import fpt.capstone.form_data.ConfigScoreDetailIdListForm;
+import fpt.capstone.form_data.GradeBookForm;
+import fpt.capstone.form_data.StudentRateForm;
+import fpt.capstone.mapper.GradebookSubjectsDetailsCustomMapper;
+import fpt.capstone.payroll.ValidationException;
+import fpt.capstone.repository.*;
+import fpt.capstone.security.services.UserDetailsImpl;
+import fpt.capstone.utility.DataUtil;
+import fpt.capstone.vo.GradebookScoreDetailsVO;
+import fpt.capstone.vo.GradebookSubjectsDetailsVO;
+import fpt.capstone.vo.academicAbilityVo;
+import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.CellRangeAddressList;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.transaction.Transactional;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.text.Collator;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+<span class="fc" id="L47">public class GradebookServiceImpl implements GradebookService {</span>
+    @Autowired
+    private SubjectsRepository subjectsRepository;
+    @Autowired
+    private GradebookRepository gradebookRepository;
+    @Autowired
+    private TeachingAssignmentRepository teachingAssignmentRepository;
+    @Autowired
+    private GradebookSubjectsDetailsRepository gradebookSubjectsDetailsRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private GradebookScoreDetailsRepository gradebookScoreDetailsRepository;
+    @Autowired
+    private SubjectClassRepository subjectClassRepository;
+    @Autowired
+    private ClassRoomRepository classRoomRepository;
+
+    @Autowired
+    private AcademicAbilityRepository academicAbilityRepository;
+    @Autowired
+    private SchoolYearRespository schoolYearRespository;
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; findScoreOfClassInSemester(String classCode, String year, Integer semester) {
+<span class="nc" id="L72">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L73">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L74">        List&lt;Map&lt;String, Object&gt;&gt; scoreDetail = gradebookSubjectsDetailsRepository.findScoreOfClassInSemester(classCode, year, semester);</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (scoreDetail.size() == 0) {</span>
+<span class="nc" id="L76">            serviceResult.setMessage(&quot;Dữ liệu rỗng&quot;);</span>
+<span class="nc" id="L77">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+        } else {
+<span class="nc" id="L79">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L80">            serviceResult.setStatus(HttpStatus.OK);</span>
+        }
+<span class="nc" id="L82">        output.put(&quot;scoreDetail&quot;, scoreDetail);</span>
+<span class="nc" id="L83">        serviceResult.setData(output);</span>
+<span class="nc" id="L84">        return serviceResult;</span>
+    }
+
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; findScoreOfClassInSemesterMonXepLoai(String classCode, String year, Integer semester) {
+<span class="nc" id="L90">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L91">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L92">        List&lt;Map&lt;String, Object&gt;&gt; scoreDetail = gradebookSubjectsDetailsRepository.findScoreOfClassInSemesterMonXepLoai(classCode, year, semester);</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (scoreDetail.size() == 0) {</span>
+<span class="nc" id="L94">            serviceResult.setMessage(&quot;Dữ liệu rỗng&quot;);</span>
+<span class="nc" id="L95">            serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+        } else {
+<span class="nc" id="L97">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L98">            serviceResult.setStatus(HttpStatus.OK);</span>
+        }
+<span class="nc" id="L100">        output.put(&quot;scoreDetail&quot;, scoreDetail);</span>
+<span class="nc" id="L101">        serviceResult.setData(output);</span>
+<span class="nc" id="L102">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getStudentRate(String classCode, String year, Integer semester) {
+<span class="nc" id="L107">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L108">        Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L109">        List&lt;Map&lt;String, Object&gt;&gt; studenRateList = gradebookRepository.getStudentRateCodeByClassYearSemester(classCode, year, semester);</span>
+
+<span class="nc" id="L111">        serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L112">        serviceResult.setStatus(HttpStatus.OK);</span>
+
+<span class="nc" id="L114">        output.put(&quot;studentRate&quot;, studenRateList);</span>
+<span class="nc" id="L115">        serviceResult.setData(output);</span>
+<span class="nc" id="L116">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; updateStudentRate(StudentRateForm form) {
+
+<span class="nc" id="L122">        List&lt;Map&lt;String, Object&gt;&gt; gradeCodeList = gradebookRepository.getCodeByClassYearSemester(form.getClassCode(), form.getYear(), form.getSemester());</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (gradeCodeList.size() == 0) {</span>
+<span class="nc" id="L124">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Lỗi không tìm thấy sổ điểm&quot;, false);</span>
+        }
+<span class="nc" id="L126">        String gradeBookCode = gradeCodeList.get(0).get(&quot;code&quot;) + &quot;&quot;;</span>
+
+<span class="nc" id="L128">        List&lt;academicAbilityVo&gt; studentRateList = form.getRateList();</span>
+
+<span class="nc" id="L130">        Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="nc" id="L131">        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();</span>
+<span class="nc" id="L132">        String createdName = userDetails.getUsername();</span>
+        try {
+
+
+<span class="nc" id="L136">            List&lt;AcademicAbility&gt; AcademicAbilities = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">            for (academicAbilityVo i : studentRateList) {</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">                if (gradebookRepository.getAcademicAbility(gradeBookCode, i.getStudentCode()).size() == 0) {</span>
+<span class="nc" id="L139">                    String acCode = &quot;AA_&quot; + new Timestamp(System.currentTimeMillis());</span>
+<span class="nc" id="L140">                    AcademicAbility ac = new AcademicAbility(acCode, i.getStudentCode(), gradeBookCode, java.time.LocalDate.now(), createdName, i.getAcademicAbility());</span>
+
+<span class="nc" id="L142">                    AcademicAbilities.add(ac);</span>
+
+<span class="nc" id="L144">                } else {</span>
+<span class="nc" id="L145">                    gradebookRepository.updateAcademicAbility(i.getAcademicAbility(), i.getStudentCode(), gradeBookCode);</span>
+                }
+<span class="nc" id="L147">            }</span>
+<span class="nc" id="L148">            academicAbilityRepository.saveAll(AcademicAbilities);</span>
+<span class="nc" id="L149">        } catch (Exception e) {</span>
+<span class="nc" id="L150">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Cập nhật lỗi&quot;, false);</span>
+<span class="nc" id="L151">        }</span>
+
+<span class="nc" id="L153">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật thành công&quot;, false);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; onSearch(GradeBookForm gradeBookForm) {
+<span class="nc" id="L158">        Subjects subject = subjectsRepository.findByCode(gradeBookForm.getSubjectCode());</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        if (gradeBookForm.getSemester().equals(&quot;0&quot;)) {</span>
+<span class="nc" id="L160">            ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+            try {
+                List&lt;Map&lt;String, Object&gt;&gt; AvgScore;
+<span class="nc" id="L163">                Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">                if (subject.getSubType() == 1) {</span>
+<span class="nc" id="L165">                    AvgScore = gradebookRepository.getForSemester0Grade(gradeBookForm.getClassCode(), gradeBookForm.getSubjectCode(), gradeBookForm.getSchoolYear(), schoolYearRespository.getSemesterAmount(gradeBookForm.getSchoolYear()));</span>
+                } else {
+<span class="nc" id="L167">                    AvgScore = gradebookRepository.getForSemester0Score(gradeBookForm.getClassCode(), gradeBookForm.getSubjectCode(), gradeBookForm.getSchoolYear());</span>
+                }
+<span class="nc" id="L169">                AvgScore.sort((o1, o2) -&gt; Collator.getInstance().compare(o1.get(&quot;studentName&quot;).toString().substring(o1.get(&quot;studentName&quot;).toString().lastIndexOf(' ') + 1), o2.get(&quot;studentName&quot;).toString().substring(o2.get(&quot;studentName&quot;).toString().lastIndexOf(' ') + 1)));</span>
+<span class="nc" id="L170">                output.put(&quot;AvgScore&quot;, AvgScore);</span>
+<span class="nc" id="L171">                serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L172">                serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L173">                serviceResult.setData(output);</span>
+<span class="nc" id="L174">            } catch (Exception e) {</span>
+<span class="nc" id="L175">                e.printStackTrace();</span>
+<span class="nc" id="L176">                serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L177">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L178">            }</span>
+<span class="nc" id="L179">            return serviceResult;</span>
+        }
+
+<span class="nc" id="L182">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; listRes = null;</span>
+<span class="nc bnc" id="L183" title="All 4 branches missed.">        if (subject != null &amp;&amp; subject.getSubType() == 0) {</span>
+<span class="nc" id="L184">            listRes = getStudentListWithEachScore(gradeBookForm);</span>
+<span class="nc bnc" id="L185" title="All 4 branches missed.">        } else if (subject != null &amp;&amp; subject.getSubType() == 1) {</span>
+<span class="nc" id="L186">            listRes = getStudentListWithClassification(gradeBookForm);</span>
+        }
+<span class="nc" id="L188">        return listRes;</span>
+    }
+
+    private ServiceResult&lt;Map&lt;String, Object&gt;&gt; getStudentListWithEachScore(GradeBookForm gradeBookForm) {
+<span class="nc" id="L192">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L194" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L195">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L197">            username = principal.toString();</span>
+        }
+<span class="nc" id="L199">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L200">        List&lt;ConfigScoreDetail&gt; csdList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L201">        List&lt;GradebookSubjectsDetailsVO&gt; gsdList = new ArrayList&lt;&gt;();//danh sach diem 1 mon cua 1 hs</span>
+        try {
+<span class="nc" id="L203">            List&lt;GradebookScoreDetailsVO&gt; scoreList = gradebookRepository</span>
+<span class="nc" id="L204">                    .getStudentListWithEachScore(gradeBookForm.getClassCode(), gradeBookForm.getSubjectCode(), gradeBookForm.getSchoolYear(), 0, 1, gradeBookForm.getSemester())</span>
+<span class="nc" id="L205">                    .stream()</span>
+<span class="nc" id="L206">                    .map(</span>
+                            o -&gt; {
+<span class="nc" id="L208">                                GradebookScoreDetailsVO score = new GradebookScoreDetailsVO();//chi tiet ve 1 dau diem cua 1 hs</span>
+
+<span class="nc" id="L210">                                ConfigScoreDetail scd = new ConfigScoreDetail();// cau hinh diem</span>
+<span class="nc" id="L211">                                scd.setId((Integer) o[3]);</span>
+<span class="nc" id="L212">                                scd.setName(DataUtil.safeToString(o[4]));</span>
+<span class="nc" id="L213">                                scd.setCode(DataUtil.safeToString(o[5]));</span>
+<span class="nc" id="L214">                                scd.setCoefficient((Integer) o[6]);</span>
+<span class="nc" id="L215">                                scd.setQuantity((Integer) o[7]);</span>
+<span class="nc" id="L216">                                scd.setMinimumScore((Integer) o[8]);</span>
+<span class="nc" id="L217">                                scd.setParentCode(DataUtil.safeToString(o[9]));</span>
+
+<span class="nc" id="L219">                                csdList.add(scd);</span>
+<span class="nc" id="L220">                                GradebookSubjectsDetailsVO gsd = new GradebookSubjectsDetailsVO();</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">                                gsd.setAvgScore(DataUtil.safeToString(o[10], &quot;&quot;).equals(&quot;&quot;) ? null : o[10].toString());</span>
+<span class="nc" id="L222">                                gsd.setId((Integer) o[11]);</span>
+<span class="nc" id="L223">                                gsd.setCode(DataUtil.safeToString(o[12]));</span>
+<span class="nc" id="L224">                                gsd.setParentCode(DataUtil.safeToString(o[13]));</span>
+<span class="nc" id="L225">                                gsd.setEvaluate(DataUtil.safeToString(o[14]));</span>
+<span class="nc" id="L226">                                gsd.setStatus((Integer) o[16]);</span>
+<span class="nc" id="L227">                                gsd.setStudentId((Integer) o[0]);</span>
+<span class="nc" id="L228">                                gsd.setStudentCode(DataUtil.safeToString(o[2]));</span>
+<span class="nc" id="L229">                                gsd.setStudentName(DataUtil.safeToString(o[1]));</span>
+<span class="nc" id="L230">                                gsd.setSubjectCode(gradeBookForm.getSubjectCode());</span>
+<span class="nc" id="L231">                                gsd.setClassCode(gradeBookForm.getClassCode());</span>
+<span class="nc" id="L232">                                gsdList.add(gsd);</span>
+
+<span class="nc" id="L234">                                score.setIdStudent((Integer) o[0]);</span>
+<span class="nc" id="L235">                                score.setId(DataUtil.safeToInt(o[17]));</span>
+<span class="nc" id="L236">                                score.setCode(DataUtil.safeToString(o[18]));</span>
+<span class="nc" id="L237">                                score.setParentCode(DataUtil.safeToString(o[19]));</span>
+<span class="nc" id="L238">                                score.setTimes(DataUtil.safeToInt(o[20]));</span>
+<span class="nc" id="L239">                                score.setValue(DataUtil.safeToString(o[21]));</span>
+<span class="nc" id="L240">                                score.setCoeficient((Integer) (o[22]));</span>
+<span class="nc" id="L241">                                score.setScoreCode(scd.getCode());</span>
+<span class="nc" id="L242">                                score.setScoreName(scd.getName());</span>
+<span class="nc" id="L243">                                score.setQuantity(scd.getQuantity());</span>
+<span class="nc" id="L244">                                score.setMinimumScore(scd.getMinimumScore());</span>
+<span class="nc" id="L245">                                score.setSubjectCode(gradeBookForm.getSubjectCode());</span>
+<span class="nc" id="L246">                                score.setType(0);</span>
+<span class="nc" id="L247">                                return score;</span>
+                            }
+                    )
+<span class="nc" id="L250">                    .collect(Collectors.toList());</span>
+<span class="nc" id="L251">            List&lt;ConfigScoreDetail&gt; confScoreDetailsList = csdList.stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L252">            Map&lt;Integer, List&lt;GradebookSubjectsDetailsVO&gt;&gt; mapGSD = gsdList</span>
+<span class="nc" id="L253">                    .stream()</span>
+<span class="nc" id="L254">                    .collect(Collectors.groupingBy(GradebookSubjectsDetailsVO::getStudentId));</span>
+
+<span class="nc" id="L256">            Map&lt;Integer, List&lt;GradebookScoreDetailsVO&gt;&gt; mapScore = scoreList</span>
+<span class="nc" id="L257">                    .stream()</span>
+<span class="nc" id="L258">                    .collect(Collectors.groupingBy(GradebookScoreDetailsVO::getIdStudent));</span>
+
+<span class="nc" id="L260">            Set&lt;Integer&gt; ids = mapGSD.keySet();</span>
+<span class="nc" id="L261">            List&lt;GradebookSubjectsDetailsVO&gt; resultList = new ArrayList&lt;&gt;();</span>
+            //For each student
+<span class="nc bnc" id="L263" title="All 2 branches missed.">            for (Integer id : ids) {</span>
+<span class="nc" id="L264">                List&lt;GradebookSubjectsDetailsVO&gt; gradebookSubjectsDetailsDTOS = mapGSD.get(id).stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L265">                GradebookSubjectsDetailsVO result = new GradebookSubjectsDetailsVO();</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">                if (!gradebookSubjectsDetailsDTOS.isEmpty()) {</span>
+<span class="nc" id="L267">                    Optional&lt;GradebookSubjectsDetailsVO&gt; gsdOpt = Optional.ofNullable(gradebookSubjectsDetailsDTOS</span>
+<span class="nc" id="L268">                            .stream()</span>
+<span class="nc" id="L269">                            .distinct()</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">                            .filter(s -&gt; s.getId() != null)</span>
+<span class="nc" id="L271">                            .sorted(Comparator.comparingLong(GradebookSubjectsDetailsVO::getId))</span>
+<span class="nc" id="L272">                            .findFirst()</span>
+<span class="nc" id="L273">                            .orElse(gradebookSubjectsDetailsDTOS.get(0)));</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">                    if (gsdOpt.isPresent()) {</span>
+<span class="nc" id="L275">                        result = gsdOpt.get();</span>
+                    }
+                }
+<span class="nc" id="L278">                List&lt;GradebookScoreDetailsVO&gt; scoreListOfStudent = mapScore.get(id).stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L279">                List&lt;GradebookScoreDetailsVO&gt; listScore = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L281" title="All 2 branches missed.">                for (ConfigScoreDetail x : confScoreDetailsList) {</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">                    for (int i = 0; i &lt; x.getQuantity(); i++) {</span>
+<span class="nc" id="L283">                        int temp = i;</span>
+
+<span class="nc" id="L285">                        List&lt;GradebookScoreDetailsVO&gt; scores = scoreListOfStudent</span>
+<span class="nc" id="L286">                                .stream()</span>
+<span class="nc" id="L287">                                .filter(</span>
+                                        o -&gt;
+<span class="nc bnc" id="L289" title="All 2 branches missed.">                                                o.getId() != null &amp;&amp;</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">                                                        o.getTimes() != null &amp;&amp;</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">                                                        o.getTimes().equals(temp + 1) &amp;&amp;</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">                                                        o.getScoreCode().equals(x.getCode())</span>
+                                )
+<span class="nc" id="L294">                                .collect(Collectors.toList());</span>
+<span class="nc" id="L295">                        GradebookScoreDetailsVO item = new GradebookScoreDetailsVO();</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">                        if (!scores.isEmpty()) {</span>
+<span class="nc" id="L297">                            listScore.add(scores.get(0));</span>
+                            ;
+                        } else {
+<span class="nc" id="L300">                            item.setScoreName(x.getName());</span>
+<span class="nc" id="L301">                            item.setScoreCode(x.getCode());</span>
+<span class="nc" id="L302">                            item.setTimes(i + 1);</span>
+<span class="nc" id="L303">                            item.setType(0);</span>
+<span class="nc" id="L304">                            item.setCoeficient(x.getCoefficient());</span>
+<span class="nc" id="L305">                            item.setQuantity(x.getQuantity());</span>
+<span class="nc" id="L306">                            item.setMinimumScore(x.getMinimumScore());</span>
+<span class="nc" id="L307">                            listScore.add(item);</span>
+                        }
+                    }
+<span class="nc" id="L310">                }</span>
+<span class="nc" id="L311">                result.setListScore(listScore);</span>
+<span class="nc" id="L312">                resultList.add(result);</span>
+<span class="nc" id="L313">            }</span>
+<span class="nc" id="L314">            resultList.sort((o1, o2) -&gt; Collator.getInstance().compare(o1.getStudentName().substring(o1.getStudentName().lastIndexOf(' ') + 1), o2.getStudentName().substring(o2.getStudentName().lastIndexOf(' ') + 1)));</span>
+<span class="nc" id="L315">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L316">            output.put(&quot;ScoreList&quot;, resultList);</span>
+<span class="nc" id="L317">            output.put(&quot;ScoreConfig&quot;, confScoreDetailsList);</span>
+<span class="nc" id="L318">            SchoolYear sy = schoolYearRespository.getSchoolYearOptional(gradeBookForm.getSchoolYear(), gradeBookForm.getSemester()).get();</span>
+<span class="nc bnc" id="L319" title="All 2 branches missed.">            if (gradeBookForm.getSemester().equals(&quot;1&quot;)) {</span>
+<span class="nc bnc" id="L320" title="All 6 branches missed.">                if (teachingAssignmentRepository.isTeachingforSemester1(gradeBookForm.getSubjectCode(), gradeBookForm.getClassCode(), username) &amp;&amp; LocalDateTime.now().isBefore(sy.getToDate()) &amp;&amp; LocalDateTime.now().isAfter(sy.getFromDate())) {</span>
+<span class="nc" id="L321">                    output.put(&quot;canUpdate&quot;, 1);</span>
+                } else {
+<span class="nc" id="L323">                    output.put(&quot;canUpdate&quot;, 0);</span>
+                }
+            } else {
+<span class="nc bnc" id="L326" title="All 6 branches missed.">                if (teachingAssignmentRepository.isTeachingforSemester1(gradeBookForm.getSubjectCode(), gradeBookForm.getClassCode(), username) &amp;&amp; LocalDateTime.now().isBefore(sy.getToDate()) &amp;&amp; LocalDateTime.now().isAfter(sy.getFromDate())) {</span>
+<span class="nc" id="L327">                    output.put(&quot;canUpdate&quot;, 1);</span>
+                } else {
+<span class="nc" id="L329">                    output.put(&quot;canUpdate&quot;, 0);</span>
+                }
+            }
+<span class="nc bnc" id="L332" title="All 2 branches missed.">            if (confScoreDetailsList.size() == 0) {</span>
+<span class="nc" id="L333">                serviceResult.setMessage(&quot;Chưa cấu hình điểm cho lớp học&quot;);</span>
+<span class="nc" id="L334">                serviceResult.setStatus(HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L335">                serviceResult.setData(output);</span>
+<span class="nc" id="L336">                return serviceResult;</span>
+            }
+<span class="nc" id="L338">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L339">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L340">            serviceResult.setData(output);</span>
+<span class="nc" id="L341">        } catch (Exception e) {</span>
+<span class="nc" id="L342">            e.printStackTrace();</span>
+<span class="nc" id="L343">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L344">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L345">        }</span>
+<span class="nc" id="L346">        return serviceResult;</span>
+    }
+
+    private ServiceResult&lt;Map&lt;String, Object&gt;&gt; getStudentListWithClassification(GradeBookForm gradeBookForm) {
+<span class="nc" id="L350">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L352" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L353">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L355">            username = principal.toString();</span>
+        }
+<span class="nc" id="L357">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+<span class="nc" id="L358">        List&lt;ConfigGradeDetail&gt; cgdList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L359">        List&lt;GradebookSubjectsDetailsVO&gt; gsdList = new ArrayList&lt;&gt;();</span>
+        try {
+<span class="nc" id="L361">            List&lt;GradebookScoreDetailsVO&gt; scoreList = gradebookRepository</span>
+<span class="nc" id="L362">                    .getStudentListWithEachClassification(gradeBookForm.getClassCode(), gradeBookForm.getSubjectCode(), gradeBookForm.getSchoolYear(), 0, 1, gradeBookForm.getSemester())</span>
+<span class="nc" id="L363">                    .stream()</span>
+<span class="nc" id="L364">                    .map(</span>
+                            o -&gt; {
+<span class="nc" id="L366">                                GradebookScoreDetailsVO score = new GradebookScoreDetailsVO();</span>
+<span class="nc" id="L367">                                score.setIdStudent((Integer) o[0]);</span>
+
+<span class="nc" id="L369">                                ConfigGradeDetail cgd = new ConfigGradeDetail();</span>
+<span class="nc" id="L370">                                cgd.setId((Integer) o[3]);</span>
+<span class="nc" id="L371">                                cgd.setCode(DataUtil.safeToString(o[4]));</span>
+<span class="nc" id="L372">                                cgd.setName(DataUtil.safeToString(o[5]));</span>
+<span class="nc" id="L373">                                cgd.setTypeChoose((Integer) o[6]);</span>
+<span class="nc" id="L374">                                cgd.setSelectedValue(DataUtil.safeToString(o[7]));</span>
+<span class="nc" id="L375">                                cgdList.add(cgd);</span>
+
+<span class="nc" id="L377">                                GradebookSubjectsDetailsVO gsd = new GradebookSubjectsDetailsVO();</span>
+<span class="nc" id="L378">                                gsd.setId((Integer) o[8]);</span>
+<span class="nc" id="L379">                                gsd.setCode(DataUtil.safeToString(o[9]));</span>
+<span class="nc" id="L380">                                gsd.setParentCode(DataUtil.safeToString(o[10]));</span>
+<span class="nc" id="L381">                                gsd.setEvaluate(DataUtil.safeToString(o[11]));</span>
+<span class="nc" id="L382">                                gsd.setStatus((Integer) o[13]);</span>
+<span class="nc" id="L383">                                gsd.setStudentId(score.getIdStudent());</span>
+<span class="nc" id="L384">                                gsd.setStudentCode(DataUtil.safeToString(o[2]));</span>
+<span class="nc" id="L385">                                gsd.setStudentName(DataUtil.safeToString(o[1]));</span>
+<span class="nc" id="L386">                                gsd.setSubjectCode(gradeBookForm.getSubjectCode());</span>
+<span class="nc" id="L387">                                gsd.setClassCode(gradeBookForm.getClassCode());</span>
+<span class="nc" id="L388">                                gsdList.add(gsd);</span>
+
+<span class="nc" id="L390">                                score.setId((Integer) o[14]);</span>
+<span class="nc" id="L391">                                score.setCode(DataUtil.safeToString(o[15]));</span>
+<span class="nc" id="L392">                                score.setParentCode(DataUtil.safeToString(o[16]));</span>
+<span class="nc" id="L393">                                score.setTimes((Integer) o[17]);</span>
+<span class="nc" id="L394">                                score.setValue(DataUtil.safeToString(o[18]));</span>
+<span class="nc" id="L395">                                score.setCoeficient((Integer) o[19]);</span>
+<span class="nc" id="L396">                                score.setScoreCode(cgd.getCode());</span>
+<span class="nc" id="L397">                                score.setScoreName(cgd.getName());</span>
+<span class="nc" id="L398">                                score.setSubjectCode(gradeBookForm.getSubjectCode());</span>
+<span class="nc" id="L399">                                score.setType(1);</span>
+<span class="nc" id="L400">                                score.setTypeChoose(cgd.getTypeChoose());</span>
+<span class="nc bnc" id="L401" title="All 2 branches missed.">                                if (cgd.getTypeChoose().equals(1)) {</span>
+<span class="nc" id="L402">                                    String selectedValue = cgd.getSelectedValue();</span>
+<span class="nc" id="L403">                                    List&lt;String&gt; selectList = Arrays</span>
+<span class="nc" id="L404">                                            .stream(selectedValue.split(&quot;,&quot;))</span>
+<span class="nc" id="L405">                                            .map(str -&gt; str.trim())</span>
+<span class="nc" id="L406">                                            .collect(Collectors.toList());</span>
+<span class="nc" id="L407">                                    score.setSelectedValue(selectList);</span>
+                                }
+<span class="nc" id="L409">                                return score;</span>
+                            }
+                    )
+<span class="nc" id="L412">                    .collect(Collectors.toList());</span>
+
+<span class="nc" id="L414">            Map&lt;Integer, List&lt;GradebookSubjectsDetailsVO&gt;&gt; mapGSD = gsdList</span>
+<span class="nc" id="L415">                    .stream()</span>
+<span class="nc" id="L416">                    .collect(Collectors.groupingBy(GradebookSubjectsDetailsVO::getStudentId));</span>
+
+<span class="nc" id="L418">            Map&lt;Integer, List&lt;GradebookScoreDetailsVO&gt;&gt; mapScore = scoreList</span>
+<span class="nc" id="L419">                    .stream()</span>
+<span class="nc" id="L420">                    .collect(Collectors.groupingBy(GradebookScoreDetailsVO::getIdStudent));</span>
+
+<span class="nc" id="L422">            Set&lt;Integer&gt; ids = mapGSD.keySet();</span>
+<span class="nc" id="L423">            List&lt;GradebookSubjectsDetailsVO&gt; resultList = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L425" title="All 2 branches missed.">            for (Integer id : ids) {</span>
+<span class="nc bnc" id="L426" title="All 2 branches missed.">                GradebookSubjectsDetailsVO result = mapGSD.get(id).isEmpty() ? new GradebookSubjectsDetailsVO() : mapGSD.get(id).get(0);</span>
+<span class="nc" id="L427">                List&lt;GradebookScoreDetailsVO&gt; scoreListOfStudent = mapScore.get(id).stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L428">                result.setListScore(scoreListOfStudent);</span>
+<span class="nc" id="L429">                resultList.add(result);</span>
+<span class="nc" id="L430">            }</span>
+<span class="nc" id="L431">            resultList.sort((o1, o2) -&gt; Collator.getInstance().compare(o1.getStudentName().substring(o1.getStudentName().lastIndexOf(' ') + 1), o2.getStudentName().substring(o2.getStudentName().lastIndexOf(' ') + 1)));</span>
+<span class="nc" id="L432">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L433">            List&lt;ConfigGradeDetail&gt; configGradeDetailLíst = cgdList.stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L434">            output.put(&quot;ScoreConfig&quot;, configGradeDetailLíst);</span>
+<span class="nc" id="L435">            output.put(&quot;ScoreList&quot;, resultList);</span>
+<span class="nc" id="L436">            SchoolYear sy = schoolYearRespository.getSchoolYearOptional(gradeBookForm.getSchoolYear(), gradeBookForm.getSemester()).get();</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">            if (gradeBookForm.getSemester().equals(&quot;1&quot;)) {</span>
+<span class="nc bnc" id="L438" title="All 6 branches missed.">                if (teachingAssignmentRepository.isTeachingforSemester1(gradeBookForm.getSubjectCode(), gradeBookForm.getClassCode(), username) &amp;&amp; LocalDateTime.now().isBefore(sy.getToDate()) &amp;&amp; LocalDateTime.now().isAfter(sy.getFromDate())) {</span>
+<span class="nc" id="L439">                    output.put(&quot;canUpdate&quot;, 1);</span>
+                } else {
+<span class="nc" id="L441">                    output.put(&quot;canUpdate&quot;, 0);</span>
+                }
+            } else {
+<span class="nc bnc" id="L444" title="All 6 branches missed.">                if (teachingAssignmentRepository.isTeachingforSemester1(gradeBookForm.getSubjectCode(), gradeBookForm.getClassCode(), username) &amp;&amp; LocalDateTime.now().isBefore(sy.getToDate()) &amp;&amp; LocalDateTime.now().isAfter(sy.getFromDate())) {</span>
+<span class="nc" id="L445">                    output.put(&quot;canUpdate&quot;, 1);</span>
+                } else {
+<span class="nc" id="L447">                    output.put(&quot;canUpdate&quot;, 0);</span>
+                }
+            }
+<span class="nc" id="L450">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L451">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L452">            serviceResult.setData(output);</span>
+<span class="nc" id="L453">        } catch (Exception e) {</span>
+<span class="nc" id="L454">            e.printStackTrace();</span>
+<span class="nc" id="L455">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L456">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L457">        }</span>
+<span class="nc" id="L458">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getListClassroom(GradeBookForm gradeBookForm) {
+<span class="nc" id="L463">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L465">            List&lt;Map&lt;String, Object&gt;&gt; ClassRoom = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L466" title="All 2 branches missed.">            if (gradeBookForm.getSemester().equals(&quot;1&quot;)) {</span>
+<span class="nc" id="L467">                ClassRoom = teachingAssignmentRepository.getClassRoomByTeacherCodeAndYearsAndSemester1(gradeBookForm.getTeacherCode(), gradeBookForm.getSchoolYear());</span>
+            } else {
+<span class="nc" id="L469">                ClassRoom = teachingAssignmentRepository.getClassRoomByTeacherCodeAndYearsAndSemester2(gradeBookForm.getTeacherCode(), gradeBookForm.getSchoolYear());</span>
+            }
+<span class="nc" id="L471">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L472">            output.put(&quot;ClassRoom&quot;, ClassRoom);</span>
+<span class="nc" id="L473">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L474">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L475">            serviceResult.setData(output);</span>
+<span class="nc" id="L476">        } catch (Exception e) {</span>
+<span class="nc" id="L477">            e.printStackTrace();</span>
+<span class="nc" id="L478">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L479">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L480">        }</span>
+<span class="nc" id="L481">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getListSubject(GradeBookForm gradeBookForm) {
+<span class="nc" id="L486">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L488">            List&lt;Map&lt;String, Object&gt;&gt; Subjects = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L489">            Subjects = teachingAssignmentRepository.getSubjectByTeacherCodeAndYearsAndClassCode(gradeBookForm.getTeacherCode(), gradeBookForm.getSchoolYear(), gradeBookForm.getClassCode());</span>
+<span class="nc" id="L490">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L491">            output.put(&quot;Subjects&quot;, Subjects);</span>
+<span class="nc" id="L492">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L493">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L494">            serviceResult.setData(output);</span>
+<span class="nc" id="L495">        } catch (Exception e) {</span>
+<span class="nc" id="L496">            e.printStackTrace();</span>
+<span class="nc" id="L497">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L498">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L499">        }</span>
+<span class="nc" id="L500">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;GradebookSubjectsDetails&gt; evaluate(GradebookSubjectsDetailsVO vo, String login) {
+<span class="nc" id="L505">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L507" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L508">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L510">            username = principal.toString();</span>
+        }
+        try {
+<span class="nc" id="L513">            User user = userRepository.findByLogin(login);</span>
+<span class="nc" id="L514">            Optional&lt;GradebookSubjectsDetails&gt; gsdOpt = gradebookSubjectsDetailsRepository.findById(vo.getId());</span>
+<span class="nc bnc" id="L515" title="All 2 branches missed.">            if (gsdOpt.isPresent()) {</span>
+<span class="nc" id="L516">                GradebookSubjectsDetails gsd = gsdOpt.get();</span>
+<span class="nc bnc" id="L517" title="All 2 branches missed.">                if (user != null) {</span>
+<span class="nc" id="L518">                    gsd.setUpdater(user.getLogin());</span>
+                }
+<span class="nc" id="L520">                gsd.setEvaluate(vo.getEvaluate());</span>
+<span class="nc bnc" id="L521" title="All 2 branches missed.">                Integer evaluateStatus = StringUtils.isNotEmpty(vo.getEvaluate()) ? 1 : 0;</span>
+<span class="nc" id="L522">                gsd.setEvaluateStatus(evaluateStatus);</span>
+<span class="nc" id="L523">                gsd.setUpdater(username);</span>
+<span class="nc" id="L524">                gradebookSubjectsDetailsRepository.save(gsd);</span>
+<span class="nc" id="L525">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Đánh giá thành công&quot;, null);</span>
+            } else {
+<span class="nc" id="L527">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;không tìm thấy sổ diểm của học sinh&quot;, null);</span>
+            }
+<span class="nc" id="L529">        } catch (Exception e) {</span>
+<span class="nc" id="L530">            return new ServiceResult&lt;&gt;(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Đánh giá thất bại&quot;, null);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; save(GradeBookForm gradeBookForm, String login) {
+<span class="nc" id="L536">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L538" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L539">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L541">            username = principal.toString();</span>
+        }
+        // save gradebook
+<span class="nc" id="L544">        Gradebook gradebook = gradebookRepository.findBySchoolYearAndSemesterAndClassCode(</span>
+<span class="nc" id="L545">                gradeBookForm.getSchoolYear(),</span>
+<span class="nc" id="L546">                gradeBookForm.getSemester(),</span>
+<span class="nc" id="L547">                gradeBookForm.getClassCode()</span>
+        );
+<span class="nc bnc" id="L549" title="All 2 branches missed.">        if (null == gradebook) {</span>
+<span class="nc" id="L550">            gradebook = new Gradebook();</span>
+<span class="nc" id="L551">            gradebook.setSchoolYear(gradeBookForm.getSchoolYear());</span>
+<span class="nc" id="L552">            gradebook.setSemester(gradeBookForm.getSemester());</span>
+<span class="nc" id="L553">            gradebook.setClassCode(gradeBookForm.getClassCode());</span>
+        }
+        try {
+<span class="nc bnc" id="L556" title="All 2 branches missed.">            String gradebookCode = gradebook.getId() == null ? UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;) : gradebook.getCode();</span>
+<span class="nc" id="L557">            gradebook.setCode(gradebookCode);</span>
+<span class="nc" id="L558">            gradebook = gradebookRepository.save(gradebook);</span>
+<span class="nc" id="L559">            Gradebook checkDuplicate = new Gradebook();</span>
+<span class="nc" id="L560">            gradeBookForm</span>
+<span class="nc" id="L561">                    .getSubjectsDetails()</span>
+<span class="nc" id="L562">                    .forEach(</span>
+                            subjectsDetails -&gt; {
+                                // save gradebookSubjectDetails
+<span class="nc" id="L565">                                GradebookSubjectsDetails gradebookSubjectsDetails = GradebookSubjectsDetailsCustomMapper.toEntity(subjectsDetails);</span>
+                                String gradebookSubjectCode;
+<span class="nc bnc" id="L567" title="All 2 branches missed.">                                if (gradebookSubjectsDetails.getId() == null) {</span>
+<span class="nc" id="L568">                                    Optional&lt;GradebookSubjectsDetails&gt; gggd = gradebookSubjectsDetailsRepository.findFirstByStudentCodeAndSubjectCodeAndParentCode(</span>
+<span class="nc" id="L569">                                            subjectsDetails.getStudentCode(),</span>
+<span class="nc" id="L570">                                            subjectsDetails.getSubjectCode(),</span>
+                                            gradebookCode
+                                    );
+                                    // Check bug duplicate GradebookSubjectDetails
+<span class="nc bnc" id="L574" title="All 2 branches missed.">                                    if (gggd.isPresent()) {</span>
+<span class="nc" id="L575">                                        checkDuplicate.setId(1);</span>
+                                    }
+<span class="nc" id="L577">                                    gradebookSubjectCode = UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;);</span>
+<span class="nc" id="L578">                                    gradebookSubjectsDetails.setEvaluateStatus(0);</span>
+<span class="nc" id="L579">                                } else {</span>
+<span class="nc" id="L580">                                    gradebookSubjectCode = gradebookSubjectsDetails.getCode();</span>
+                                }
+<span class="nc" id="L582">                                gradebookSubjectsDetails.setCode(gradebookSubjectCode);</span>
+<span class="nc" id="L583">                                gradebookSubjectsDetails.setUpdater(username);</span>
+<span class="nc bnc" id="L584" title="All 2 branches missed.">                                Integer status = StringUtils.isBlank(gradebookSubjectsDetails.getEvaluate()) ? 0 : 1;</span>
+<span class="nc" id="L585">                                gradebookSubjectsDetails.setEvaluateStatus(status);</span>
+<span class="nc" id="L586">                                gradebookSubjectsDetails.setParentCode(gradebookCode);</span>
+<span class="nc" id="L587">                                gradebookSubjectsDetails.setUpdater(username);</span>
+<span class="nc" id="L588">                                gradebookSubjectsDetailsRepository.save(gradebookSubjectsDetails);</span>
+
+                                // save gradebookScoreDetails
+<span class="nc" id="L591">                                List&lt;GradebookScoreDetails&gt; gradebookScoreDetails = subjectsDetails</span>
+<span class="nc" id="L592">                                        .getListScore()</span>
+<span class="nc" id="L593">                                        .stream()</span>
+<span class="nc bnc" id="L594" title="All 2 branches missed.">                                        .filter(scoreDetails -&gt; scoreDetails.getValue() != null)</span>
+<span class="nc" id="L595">                                        .map(</span>
+                                                scoreDetails -&gt; {
+<span class="nc bnc" id="L597" title="All 2 branches missed.">                                                    if (null != scoreDetails.getId()) {</span>
+<span class="nc" id="L598">                                                        Optional&lt;GradebookScoreDetails&gt; gsd = gradebookScoreDetailsRepository.findById(scoreDetails.getId());</span>
+<span class="nc" id="L599">                                                        GradebookScoreDetails gsdExist = gsd.get();</span>
+<span class="nc" id="L600">                                                        gsdExist.setValue(scoreDetails.getValue());</span>
+<span class="nc" id="L601">                                                        return gsdExist;</span>
+                                                    } else {
+<span class="nc" id="L603">                                                        GradebookScoreDetails gsdNew = new GradebookScoreDetails(UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;), gradebookSubjectCode,</span>
+<span class="nc" id="L604">                                                                scoreDetails.getScoreCode(), scoreDetails.getTimes(), scoreDetails.getValue(), scoreDetails.getType(), scoreDetails.getCoeficient());</span>
+<span class="nc" id="L605">                                                        return gsdNew;</span>
+                                                    }
+                                                }
+                                        )
+<span class="nc" id="L609">                                        .collect(Collectors.toList());</span>
+
+<span class="nc" id="L611">                                gradebookScoreDetailsRepository.saveAll(gradebookScoreDetails);</span>
+
+<span class="nc" id="L613">                            }</span>
+                    );
+<span class="nc" id="L615">            SubjectClass subjectClass = subjectClassRepository.findByClassCodeAndSubjectCode(</span>
+<span class="nc" id="L616">                    gradeBookForm.getClassCode(),</span>
+<span class="nc" id="L617">                    gradeBookForm.getSubjectCode()</span>
+            );
+<span class="nc bnc" id="L619" title="All 2 branches missed.">            if (subjectClass != null) {</span>
+<span class="nc" id="L620">                int countSemesterSubject = 0;</span>
+<span class="nc" id="L621">                SubjectClass sc = subjectClass;</span>
+<span class="nc" id="L622">                String lastSemester = &quot;0&quot;;</span>
+<span class="nc bnc" id="L623" title="All 2 branches missed.">                if (sc.getFlgSemester1().equals(1)) {</span>
+<span class="nc" id="L624">                    lastSemester = &quot;1&quot;;</span>
+<span class="nc" id="L625">                    countSemesterSubject++;</span>
+                }
+<span class="nc bnc" id="L627" title="All 2 branches missed.">                if (sc.getFlgSemester2().equals(1)) {</span>
+<span class="nc" id="L628">                    lastSemester = &quot;2&quot;;</span>
+<span class="nc" id="L629">                    countSemesterSubject++;</span>
+                }
+                // doi voi mon tinh diem (type=0 ) can cap nhat lai avg_score cho semester=0(diem tb ca nam)
+<span class="nc" id="L632">                if (</span>
+//                        gradeBookForm.getSemester().equals(lastSemester) &amp;&amp;
+<span class="nc bnc" id="L634" title="All 2 branches missed.">                        gradeBookForm.getSubjectsDetails().get(0).getListScore().get(0).getType() == 0</span>
+                ) {
+                    // save gradebook with semester = 0 when last semester of this subject is saved
+<span class="nc" id="L637">                    Gradebook wholeYearGradebookOpt = gradebookRepository.findBySchoolYearAndSemesterAndClassCode(</span>
+<span class="nc" id="L638">                            gradeBookForm.getSchoolYear(),</span>
+                            &quot;0&quot;,
+<span class="nc" id="L640">                            gradeBookForm.getClassCode()</span>
+                    );
+
+<span class="nc" id="L643">                    int finalCountSemesterSubject = countSemesterSubject;</span>
+
+<span class="nc bnc" id="L645" title="All 2 branches missed.">                    if (wholeYearGradebookOpt == null) {</span>
+<span class="nc" id="L646">                        String wholeYearGradebookCode = UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;);</span>
+<span class="nc" id="L647">                        Gradebook wholeYearGradebook = new Gradebook(wholeYearGradebookCode, gradeBookForm.getSchoolYear(), &quot;0&quot;, gradeBookForm.getClassCode());</span>
+// dang nhap diem 1 mon cho hk 2 va
+<span class="nc" id="L649">                        List&lt;GradebookSubjectsDetails&gt; gradebookSubjectsDetailsList = gradeBookForm</span>
+<span class="nc" id="L650">                                .getSubjectsDetails()</span>
+<span class="nc" id="L651">                                .stream()</span>
+<span class="nc bnc" id="L652" title="All 2 branches missed.">                                .filter(subjectsDetails -&gt; subjectsDetails.getAvgScore() != null)</span>
+<span class="nc" id="L653">                                .map(</span>
+                                        subjectsDetails -&gt; {
+<span class="nc" id="L655">                                            List&lt;GradebookSubjectsDetails&gt; previousGradebookSubjectsDetails = gradebookSubjectsDetailsRepository.getByStudentCodeAndSubjectCode(</span>
+<span class="nc" id="L656">                                                    subjectsDetails.getStudentCode(),</span>
+<span class="nc" id="L657">                                                    subjectsDetails.getSubjectCode(),</span>
+<span class="nc" id="L658">                                                    gradeBookForm.getSchoolYear()</span>
+                                            );
+
+<span class="nc" id="L661">                                            List&lt;GradebookSubjectsDetails&gt; previousFilter = previousGradebookSubjectsDetails</span>
+<span class="nc" id="L662">                                                    .stream()</span>
+<span class="nc bnc" id="L663" title="All 2 branches missed.">                                                    .filter(s -&gt; s.getAvgScore() != null)</span>
+<span class="nc" id="L664">                                                    .collect(Collectors.toList());</span>
+<span class="nc bnc" id="L665" title="All 2 branches missed.">                                            if (previousFilter.size() &lt; finalCountSemesterSubject) {</span>
+<span class="nc" id="L666">                                                return null;</span>
+                                            }
+
+<span class="nc" id="L669">                                            double avgScore = previousGradebookSubjectsDetails</span>
+<span class="nc" id="L670">                                                    .stream()</span>
+<span class="nc bnc" id="L671" title="All 2 branches missed.">                                                    .filter(s -&gt; s.getAvgScore() != null)</span>
+<span class="nc" id="L672">                                                    .mapToDouble(GradebookSubjectsDetails::getAvgScore)</span>
+<span class="nc" id="L673">                                                    .average()</span>
+<span class="nc" id="L674">                                                    .orElse(Double.NaN);</span>
+
+<span class="nc" id="L676">                                            return new GradebookSubjectsDetails(</span>
+<span class="nc" id="L677">                                                    UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;)</span>
+<span class="nc" id="L678">                                                    , subjectsDetails.getStudentCode(),</span>
+                                                    wholeYearGradebookCode,
+<span class="nc bnc" id="L680" title="All 2 branches missed.">                                                    Double.isNaN(avgScore) ? null : DataUtil.round(avgScore, 2),</span>
+<span class="nc" id="L681">                                                    subjectsDetails.getSubjectCode(),</span>
+                                                    username);
+                                        }
+                                )
+<span class="nc" id="L685">                                .filter(Objects::nonNull)</span>
+<span class="nc" id="L686">                                .collect(Collectors.toList());</span>
+<span class="nc bnc" id="L687" title="All 2 branches missed.">                        if (!gradebookSubjectsDetailsList.isEmpty()) {</span>
+<span class="nc" id="L688">                            gradebookRepository.save(wholeYearGradebook);</span>
+<span class="nc" id="L689">                            gradebookSubjectsDetailsRepository.saveAll(gradebookSubjectsDetailsList);</span>
+                        }
+<span class="nc" id="L691">                    } else {</span>
+<span class="nc" id="L692">                        Gradebook wholeYearGradebook = wholeYearGradebookOpt;</span>
+<span class="nc" id="L693">                        List&lt;GradebookSubjectsDetails&gt; gradebookSubjectsDetailsList = gradeBookForm</span>
+<span class="nc" id="L694">                                .getSubjectsDetails()</span>
+<span class="nc" id="L695">                                .stream()</span>
+<span class="nc" id="L696">                                .map(</span>
+                                        subjectsDetails -&gt; {
+<span class="nc" id="L698">                                            double avgScore = Double.NaN;</span>
+<span class="nc" id="L699">                                            List&lt;GradebookSubjectsDetails&gt; previousGradebookSubjectsDetails = gradebookSubjectsDetailsRepository.getByStudentCodeAndSubjectCode(</span>
+<span class="nc" id="L700">                                                    subjectsDetails.getStudentCode(),</span>
+<span class="nc" id="L701">                                                    subjectsDetails.getSubjectCode(),</span>
+<span class="nc" id="L702">                                                    gradeBookForm.getSchoolYear()</span>
+                                            );
+<span class="nc" id="L704">                                            List&lt;GradebookSubjectsDetails&gt; previousFilter = previousGradebookSubjectsDetails</span>
+<span class="nc" id="L705">                                                    .stream()</span>
+<span class="nc bnc" id="L706" title="All 4 branches missed.">                                                    .filter(s -&gt; !s.getParentCode().equals(wholeYearGradebook.getCode()) &amp;&amp; s.getAvgScore() != null)</span>
+<span class="nc" id="L707">                                                    .collect(Collectors.toList());</span>
+<span class="nc" id="L708">                                            if (</span>
+<span class="nc bnc" id="L709" title="All 4 branches missed.">                                                    (previousFilter.size() &lt; finalCountSemesterSubject &amp;&amp; subjectsDetails.getAvgScore() != null) ||</span>
+<span class="nc bnc" id="L710" title="All 4 branches missed.">                                                            (subjectsDetails.getAvgScore() == null &amp;&amp; previousFilter.size() + 1 &lt; finalCountSemesterSubject)</span>
+                                            ) {
+<span class="nc" id="L712">                                                return null;</span>
+                                            }
+<span class="nc bnc" id="L714" title="All 2 branches missed.">                                            if (subjectsDetails.getAvgScore() != null) {</span>
+<span class="nc" id="L715">                                                avgScore =</span>
+                                                        previousGradebookSubjectsDetails
+<span class="nc" id="L717">                                                                .stream()</span>
+<span class="nc bnc" id="L718" title="All 4 branches missed.">                                                                .filter(s -&gt; !s.getParentCode().equals(wholeYearGradebook.getCode()) &amp;&amp; s.getAvgScore() != null)</span>
+<span class="nc" id="L719">                                                                .mapToDouble(GradebookSubjectsDetails::getAvgScore)</span>
+<span class="nc" id="L720">                                                                .average()</span>
+<span class="nc" id="L721">                                                                .orElse(Double.NaN);</span>
+                                            }
+                                            // check ton tai cua GradebookSubjectsDetails
+<span class="nc" id="L724">                                            Optional&lt;GradebookSubjectsDetails&gt; wholeGradebookSubjectsDetailsOpt = previousGradebookSubjectsDetails</span>
+<span class="nc" id="L725">                                                    .stream()</span>
+<span class="nc" id="L726">                                                    .filter(s -&gt; s.getParentCode().equals(wholeYearGradebook.getCode()))</span>
+<span class="nc" id="L727">                                                    .findFirst();</span>
+<span class="nc bnc" id="L728" title="All 2 branches missed.">                                            if (wholeGradebookSubjectsDetailsOpt.isPresent()) {</span>
+<span class="nc" id="L729">                                                wholeGradebookSubjectsDetailsOpt</span>
+<span class="nc" id="L730">                                                        .get()</span>
+<span class="nc bnc" id="L731" title="All 2 branches missed.">                                                        .setAvgScore(Double.isNaN(avgScore) ? null : DataUtil.round(avgScore, 2));</span>
+<span class="nc" id="L732">                                                wholeGradebookSubjectsDetailsOpt</span>
+<span class="nc" id="L733">                                                        .get().setUpdater(username);</span>
+<span class="nc" id="L734">                                                return wholeGradebookSubjectsDetailsOpt</span>
+<span class="nc" id="L735">                                                        .get();</span>
+                                            } else {
+<span class="nc bnc" id="L737" title="All 2 branches missed.">                                                if (Double.isNaN(avgScore)) {</span>
+<span class="nc" id="L738">                                                    return null;</span>
+                                                }
+<span class="nc" id="L740">                                                return new GradebookSubjectsDetails(</span>
+<span class="nc" id="L741">                                                        UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;),</span>
+<span class="nc" id="L742">                                                        subjectsDetails.getStudentCode(),</span>
+<span class="nc" id="L743">                                                        wholeYearGradebook.getCode(),</span>
+<span class="nc bnc" id="L744" title="All 2 branches missed.">                                                        Double.isNaN(avgScore) ? null : DataUtil.round(avgScore, 2),</span>
+<span class="nc" id="L745">                                                        subjectsDetails.getSubjectCode()</span>
+                                                        , username);
+                                            }
+                                        }
+                                )
+<span class="nc" id="L750">                                .filter(Objects::nonNull)</span>
+<span class="nc" id="L751">                                .collect(Collectors.toList());</span>
+<span class="nc" id="L752">                        gradebookSubjectsDetailsRepository.saveAll(gradebookSubjectsDetailsList);</span>
+                    }
+                }
+
+            }
+            //    }
+<span class="nc bnc" id="L758" title="All 2 branches missed.">            if (checkDuplicate.getId() != null) {</span>
+<span class="nc" id="L759">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thêm thừa dữ liệu&quot;, null);</span>
+            }
+<span class="nc" id="L761">        } catch (Exception e) {</span>
+<span class="nc" id="L762">            e.printStackTrace();</span>
+<span class="nc" id="L763">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Cập nhật điểm thất bại&quot;, null);</span>
+<span class="nc" id="L764">        }</span>
+<span class="nc" id="L765">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật điểm thành công&quot;, null);</span>
+    }
+
+    @Override
+    public ByteArrayInputStream exportExcelSampleScore(String year, String subjectCode, String classCode, Integer semester, ConfigScoreDetailIdListForm configScoreDetailIdListForm) {
+<span class="nc" id="L770">        ClassRoom classRoom = classRoomRepository.getClassRoomByCode(classCode).get();</span>
+<span class="nc" id="L771">        Subjects subjects = subjectsRepository.findByCode(subjectCode);</span>
+<span class="nc" id="L772">        List&lt;ConfigScoreDetail&gt; csdList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L773">        List&lt;GradebookSubjectsDetailsVO&gt; gsdList = new ArrayList&lt;&gt;();//danh sach diem 1 mon cua 1 hs</span>
+
+<span class="nc" id="L775">        List&lt;GradebookScoreDetailsVO&gt; scoreList = gradebookRepository</span>
+<span class="nc" id="L776">                .getStudentListWithEachScore(classCode, subjectCode, year, 0, 1, semester.toString())</span>
+<span class="nc" id="L777">                .stream()</span>
+<span class="nc" id="L778">                .map(</span>
+                        o -&gt; {
+<span class="nc" id="L780">                            GradebookScoreDetailsVO score = new GradebookScoreDetailsVO();//chi tiet ve 1 dau diem cua 1 hs</span>
+
+<span class="nc" id="L782">                            ConfigScoreDetail scd = new ConfigScoreDetail();// cau hinh diem</span>
+<span class="nc" id="L783">                            scd.setId((Integer) o[3]);</span>
+<span class="nc" id="L784">                            scd.setName(DataUtil.safeToString(o[4]));</span>
+<span class="nc" id="L785">                            scd.setQuantity((Integer) o[7]);</span>
+
+<span class="nc" id="L787">                            csdList.add(scd);</span>
+<span class="nc" id="L788">                            GradebookSubjectsDetailsVO gsd = new GradebookSubjectsDetailsVO();</span>
+<span class="nc" id="L789">                            gsd.setStudentCode(DataUtil.safeToString(o[2]));</span>
+<span class="nc" id="L790">                            gsd.setStudentName(DataUtil.safeToString(o[1]));</span>
+<span class="nc" id="L791">                            gsd.setStudentId((Integer) o[0]);</span>
+<span class="nc" id="L792">                            gsdList.add(gsd);</span>
+
+<span class="nc" id="L794">                            return score;</span>
+                        }
+                )
+<span class="nc" id="L797">                .collect(Collectors.toList());</span>
+<span class="nc" id="L798">        List&lt;ConfigScoreDetail&gt; confScoreDetailsList = csdList.stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L799">        List&lt;ConfigScoreDetail&gt; confScoreDetailsListFilter = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L800" title="All 2 branches missed.">        for (Integer id : configScoreDetailIdListForm.getConfScoreDetailsIdList()) {</span>
+<span class="nc bnc" id="L801" title="All 2 branches missed.">            confScoreDetailsListFilter.addAll(confScoreDetailsList.stream().filter(csd -&gt; csd.getId() == id).collect(Collectors.toList()));</span>
+            ;
+<span class="nc" id="L803">        }</span>
+<span class="nc" id="L804">        Map&lt;Integer, List&lt;GradebookSubjectsDetailsVO&gt;&gt; mapGSD = gsdList</span>
+<span class="nc" id="L805">                .stream()</span>
+<span class="nc" id="L806">                .collect(Collectors.groupingBy(GradebookSubjectsDetailsVO::getStudentId));</span>
+
+<span class="nc" id="L808">        Set&lt;Integer&gt; ids = mapGSD.keySet();</span>
+<span class="nc" id="L809">        List&lt;GradebookSubjectsDetailsVO&gt; resultList = new ArrayList&lt;&gt;();</span>
+        //For each student
+<span class="nc bnc" id="L811" title="All 2 branches missed.">        for (Integer id : ids) {</span>
+<span class="nc" id="L812">            List&lt;GradebookSubjectsDetailsVO&gt; gradebookSubjectsDetailsDTOS = mapGSD.get(id).stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L813">            GradebookSubjectsDetailsVO result = new GradebookSubjectsDetailsVO();</span>
+<span class="nc bnc" id="L814" title="All 2 branches missed.">            if (!gradebookSubjectsDetailsDTOS.isEmpty()) {</span>
+<span class="nc" id="L815">                Optional&lt;GradebookSubjectsDetailsVO&gt; gsdOpt = Optional.ofNullable(gradebookSubjectsDetailsDTOS</span>
+<span class="nc" id="L816">                        .stream()</span>
+<span class="nc" id="L817">                        .distinct()</span>
+<span class="nc bnc" id="L818" title="All 2 branches missed.">                        .filter(s -&gt; s.getId() != null)</span>
+<span class="nc" id="L819">                        .sorted(Comparator.comparingLong(GradebookSubjectsDetailsVO::getId))</span>
+<span class="nc" id="L820">                        .findFirst()</span>
+<span class="nc" id="L821">                        .orElse(gradebookSubjectsDetailsDTOS.get(0)));</span>
+<span class="nc bnc" id="L822" title="All 2 branches missed.">                if (gsdOpt.isPresent()) {</span>
+<span class="nc" id="L823">                    result = gsdOpt.get();</span>
+                }
+<span class="nc" id="L825">                resultList.add(result);</span>
+            }
+<span class="nc" id="L827">        }</span>
+<span class="nc" id="L828">        resultList.sort((o1, o2) -&gt; Collator.getInstance().compare(o1.getStudentName().substring(o1.getStudentName().lastIndexOf(' ') + 1), o2.getStudentName().substring(o2.getStudentName().lastIndexOf(' ') + 1)));</span>
+<span class="nc" id="L829">        int numberColums = 0;</span>
+<span class="nc bnc" id="L830" title="All 2 branches missed.">        for (ConfigScoreDetail csd : confScoreDetailsListFilter) {</span>
+<span class="nc" id="L831">            numberColums += csd.getQuantity();</span>
+<span class="nc" id="L832">        }</span>
+        try {
+<span class="nc" id="L834">            Workbook workbook = new XSSFWorkbook();</span>
+<span class="nc" id="L835">            Sheet GradeBookSheet = workbook.createSheet(&quot;GradeBookScore&quot;);</span>
+<span class="nc" id="L836">            CellStyle commonStyle = workbook.createCellStyle();</span>
+<span class="nc" id="L837">            commonStyle.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L838">            commonStyle.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+<span class="nc bnc" id="L839" title="All 2 branches missed.">            for (int i = 0; i &lt; resultList.size() + 7; i++) {</span>
+<span class="nc" id="L840">                GradeBookSheet.createRow(i);</span>
+<span class="nc bnc" id="L841" title="All 2 branches missed.">                for (int j = 0; j &lt; numberColums + 5; j++) {</span>
+<span class="nc" id="L842">                    GradeBookSheet.getRow(i).createCell(j);</span>
+                }
+            }
+<span class="nc" id="L845">            GradeBookSheet.createRow(0).createCell(0).setCellValue(&quot;SỔ ĐIỂM &quot; + classRoom.getName() + &quot; - Môn: &quot; + subjects.getName());</span>
+<span class="nc" id="L846">            GradeBookSheet.getRow(0).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L847">            GradeBookSheet.addMergedRegion(new CellRangeAddress(0, 0, 0, numberColums + 2));</span>
+
+<span class="nc" id="L849">            GradeBookSheet.createRow(1).createCell(0).setCellValue(&quot;Học kỳ &quot; + semester + &quot; - Năm học : &quot; + year);</span>
+<span class="nc" id="L850">            GradeBookSheet.getRow(1).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L851">            GradeBookSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, numberColums + 2));</span>
+            //row 2
+<span class="nc" id="L853">            GradeBookSheet.createRow(2);</span>
+            //row 3
+<span class="nc" id="L855">            GradeBookSheet.createRow(3);</span>
+<span class="nc" id="L856">            GradeBookSheet.createRow(4);</span>
+
+<span class="nc" id="L858">            GradeBookSheet.getRow(3).createCell(0).setCellValue(&quot;STT&quot;);</span>
+<span class="nc" id="L859">            GradeBookSheet.getRow(3).createCell(1).setCellValue(&quot;Mã học sinh (*)&quot;);</span>
+<span class="nc" id="L860">            GradeBookSheet.getRow(3).createCell(2).setCellValue(&quot;Tên học sinh (*)&quot;);</span>
+<span class="nc" id="L861">            GradeBookSheet.getRow(3).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L862">            GradeBookSheet.getRow(3).getCell(1).setCellStyle(commonStyle);</span>
+<span class="nc" id="L863">            GradeBookSheet.getRow(3).getCell(2).setCellStyle(commonStyle);</span>
+<span class="nc bnc" id="L864" title="All 2 branches missed.">            for (int i = 3; i &lt; numberColums + 3; i++) {</span>
+<span class="nc" id="L865">                GradeBookSheet.getRow(3).createCell(i);</span>
+            }
+<span class="nc bnc" id="L867" title="All 2 branches missed.">            for (int i = 0; i &lt; numberColums + 3; i++) {</span>
+<span class="nc" id="L868">                GradeBookSheet.getRow(4).createCell(i);</span>
+            }
+<span class="nc" id="L870">            GradeBookSheet.addMergedRegion(new CellRangeAddress(3, 4, 0, 0));</span>
+<span class="nc" id="L871">            GradeBookSheet.addMergedRegion(new CellRangeAddress(3, 4, 1, 1));</span>
+<span class="nc" id="L872">            GradeBookSheet.addMergedRegion(new CellRangeAddress(3, 4, 2, 2));</span>
+<span class="nc" id="L873">            int startColum = 3;</span>
+<span class="nc" id="L874">            int endColumn = 3;</span>
+<span class="nc bnc" id="L875" title="All 2 branches missed.">            for (ConfigScoreDetail csd : confScoreDetailsListFilter) {</span>
+<span class="nc" id="L876">                int numberColumsForOneScore = csd.getQuantity();</span>
+<span class="nc" id="L877">                endColumn = startColum + numberColumsForOneScore - 1;</span>
+<span class="nc bnc" id="L878" title="All 2 branches missed.">                if (numberColumsForOneScore == 1) {</span>
+<span class="nc" id="L879">                    GradeBookSheet.getRow(3).createCell(startColum);</span>
+<span class="nc" id="L880">                    GradeBookSheet.getRow(3).getCell(startColum).setCellValue(csd.getName());</span>
+<span class="nc" id="L881">                    GradeBookSheet.getRow(3).getCell(startColum).setCellStyle(commonStyle);</span>
+
+<span class="nc" id="L883">                    GradeBookSheet.getRow(4).createCell(startColum).setCellValue(&quot;Đ1&quot;);</span>
+<span class="nc" id="L884">                    GradeBookSheet.getRow(4).getCell(startColum).setCellStyle(commonStyle);</span>
+                } else {
+<span class="nc" id="L886">                    GradeBookSheet.getRow(3).createCell(startColum).setCellValue(csd.getName());</span>
+<span class="nc" id="L887">                    GradeBookSheet.getRow(3).getCell(startColum).setCellStyle(commonStyle);</span>
+<span class="nc" id="L888">                    GradeBookSheet.addMergedRegion(new CellRangeAddress(3, 3, startColum, endColumn));</span>
+<span class="nc" id="L889">                    int a = 1;</span>
+<span class="nc bnc" id="L890" title="All 2 branches missed.">                    for (int i = startColum; i &lt;= endColumn; i++) {</span>
+<span class="nc" id="L891">                        GradeBookSheet.getRow(4).createCell(i).setCellValue(&quot;Đ&quot; + a);</span>
+<span class="nc" id="L892">                        GradeBookSheet.getRow(4).getCell(i).setCellStyle(commonStyle);</span>
+<span class="nc" id="L893">                        a++;</span>
+                    }
+                }
+<span class="nc" id="L896">                startColum = endColumn + 1;</span>
+<span class="nc" id="L897">            }</span>
+<span class="nc bnc" id="L898" title="All 2 branches missed.">            for (int i = 1; i &lt; resultList.size() + 1; i++) {</span>
+<span class="nc" id="L899">                GradeBookSheet.createRow(i + 4);</span>
+<span class="nc" id="L900">                GradeBookSheet.getRow(i + 4).createCell(0).setCellValue(i);</span>
+<span class="nc" id="L901">                GradeBookSheet.getRow(i + 4).createCell(1).setCellValue(resultList.get(i - 1).getStudentCode());</span>
+<span class="nc" id="L902">                GradeBookSheet.getRow(i + 4).createCell(2).setCellValue(resultList.get(i - 1).getStudentName());</span>
+<span class="nc bnc" id="L903" title="All 2 branches missed.">                for (int j = 3; j &lt;= numberColums + 4; j++) {</span>
+<span class="nc" id="L904">                    GradeBookSheet.getRow(i + 4).createCell(j);</span>
+                }
+<span class="nc" id="L906">                GradeBookSheet.getRow(i + 4).getCell(0).setCellStyle(commonStyle);</span>
+            }
+<span class="nc bnc" id="L908" title="All 2 branches missed.">            for (int j = 0; j &lt; numberColums + 3; j++) {</span>
+<span class="nc" id="L909">                GradeBookSheet.autoSizeColumn(j);</span>
+            }
+<span class="nc" id="L911">            CellStyle cellStyle = workbook.createCellStyle();</span>
+<span class="nc" id="L912">            cellStyle.setTopBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L913">            cellStyle.setRightBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L914">            cellStyle.setBottomBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L915">            cellStyle.setLeftBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L916">            cellStyle.setBorderTop(BorderStyle.THIN);</span>
+<span class="nc" id="L917">            cellStyle.setBorderBottom(BorderStyle.THIN);</span>
+<span class="nc" id="L918">            cellStyle.setBorderLeft(BorderStyle.THIN);</span>
+<span class="nc" id="L919">            cellStyle.setBorderRight(BorderStyle.THIN);</span>
+<span class="nc bnc" id="L920" title="All 2 branches missed.">            for (int i = 5; i &lt; resultList.size() + 5; i++) {</span>
+<span class="nc bnc" id="L921" title="All 2 branches missed.">                for (int j = 0; j &lt; numberColums + 3; j++) {</span>
+<span class="nc" id="L922">                    GradeBookSheet.getRow(i).getCell(j).setCellStyle(cellStyle);</span>
+                }
+            }
+<span class="nc" id="L925">            cellStyle.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L926">            cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+<span class="nc bnc" id="L927" title="All 2 branches missed.">            for (int i = 0; i &lt; numberColums + 3; i++) {</span>
+<span class="nc" id="L928">                GradeBookSheet.getRow(3).getCell(i).setCellStyle(cellStyle);</span>
+<span class="nc" id="L929">                GradeBookSheet.getRow(4).getCell(i).setCellStyle(cellStyle);</span>
+            }
+<span class="nc" id="L931">            String idForImport = &quot;&quot;;</span>
+<span class="nc bnc" id="L932" title="All 2 branches missed.">            for (Integer id : configScoreDetailIdListForm.getConfScoreDetailsIdList()) {</span>
+<span class="nc" id="L933">                idForImport += id + &quot; &quot;;</span>
+<span class="nc" id="L934">            }</span>
+<span class="nc bnc" id="L935" title="All 2 branches missed.">            for (int i = 3; i &lt;= GradeBookSheet.getRow(5).getPhysicalNumberOfCells(); i++) {</span>
+<span class="nc" id="L936">                GradeBookSheet.setColumnWidth(i, 15 * 256);</span>
+            }
+//            CellStyle style = workbook.createCellStyle();
+//            Font font = workbook.createFont();
+//            font.setColor(XSSFColor.toXSSFColor(Color));
+//            style.setFont(font);
+<span class="nc" id="L942">            CellStyle style = workbook.createCellStyle();</span>
+<span class="nc" id="L943">            Font font = workbook.createFont();</span>
+<span class="nc" id="L944">            font.setColor(HSSFColor.WHITE.index);</span>
+<span class="nc" id="L945">            style.setFont(font);</span>
+<span class="nc" id="L946">            GradeBookSheet.createRow(100).createCell(20).setCellValue(idForImport);</span>
+<span class="nc" id="L947">            GradeBookSheet.getRow(100).getCell(20).setCellStyle(style);</span>
+<span class="nc" id="L948">            ByteArrayOutputStream out = new ByteArrayOutputStream();</span>
+<span class="nc" id="L949">            workbook.write(out);</span>
+<span class="nc" id="L950">            workbook.close();</span>
+<span class="nc" id="L951">            return new ByteArrayInputStream(out.toByteArray());</span>
+<span class="nc" id="L952">        } catch (Exception e) {</span>
+<span class="nc" id="L953">            e.printStackTrace();</span>
+<span class="nc" id="L954">            throw new ValidationException(&quot;file&quot;, &quot;Không thể xuất file&quot;);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; importExcelScore(MultipartFile file, String subjectCode, String classCode, String schoolYear, String semester, String login) throws IOException {
+<span class="nc" id="L960">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L962" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L963">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L965">            username = principal.toString();</span>
+        }
+<span class="nc" id="L967">        GradeBookForm gradeBookForm = new GradeBookForm();</span>
+<span class="nc" id="L968">        gradeBookForm.setSemester(semester);</span>
+<span class="nc" id="L969">        gradeBookForm.setSchoolYear(schoolYear);</span>
+<span class="nc" id="L970">        gradeBookForm.setClassCode(classCode);</span>
+<span class="nc" id="L971">        gradeBookForm.setSubjectCode(subjectCode);</span>
+<span class="nc" id="L972">        List&lt;ConfigScoreDetail&gt; csdList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L973">        List&lt;GradebookSubjectsDetailsVO&gt; gsdList = new ArrayList&lt;&gt;();//danh sach diem 1 mon cua 1 hs</span>
+        try {
+<span class="nc" id="L975">            List&lt;GradebookScoreDetailsVO&gt; scoreList = gradebookRepository</span>
+<span class="nc" id="L976">                    .getStudentListWithEachScore(classCode, subjectCode, schoolYear, 0, 1, semester)</span>
+<span class="nc" id="L977">                    .stream()</span>
+<span class="nc" id="L978">                    .map(</span>
+                            o -&gt; {
+<span class="nc" id="L980">                                GradebookScoreDetailsVO score = new GradebookScoreDetailsVO();//chi tiet ve 1 dau diem cua 1 hs</span>
+
+<span class="nc" id="L982">                                ConfigScoreDetail scd = new ConfigScoreDetail();// cau hinh diem</span>
+<span class="nc" id="L983">                                scd.setId((Integer) o[3]);</span>
+<span class="nc" id="L984">                                scd.setName(DataUtil.safeToString(o[4]));</span>
+<span class="nc" id="L985">                                scd.setCode(DataUtil.safeToString(o[5]));</span>
+<span class="nc" id="L986">                                scd.setCoefficient((Integer) o[6]);</span>
+<span class="nc" id="L987">                                scd.setQuantity((Integer) o[7]);</span>
+<span class="nc" id="L988">                                scd.setMinimumScore((Integer) o[8]);</span>
+<span class="nc" id="L989">                                scd.setParentCode(DataUtil.safeToString(o[9]));</span>
+
+<span class="nc" id="L991">                                csdList.add(scd);</span>
+<span class="nc" id="L992">                                GradebookSubjectsDetailsVO gsd = new GradebookSubjectsDetailsVO();</span>
+<span class="nc bnc" id="L993" title="All 2 branches missed.">                                gsd.setAvgScore(DataUtil.safeToString(o[10], &quot;&quot;).equals(&quot;&quot;) ? null : o[10].toString());</span>
+<span class="nc" id="L994">                                gsd.setId((Integer) o[11]);</span>
+<span class="nc" id="L995">                                gsd.setCode(DataUtil.safeToString(o[12]));</span>
+<span class="nc" id="L996">                                gsd.setParentCode(DataUtil.safeToString(o[13]));</span>
+<span class="nc" id="L997">                                gsd.setEvaluate(DataUtil.safeToString(o[14]));</span>
+<span class="nc" id="L998">                                gsd.setStatus((Integer) o[16]);</span>
+<span class="nc" id="L999">                                gsd.setStudentId((Integer) o[0]);</span>
+<span class="nc" id="L1000">                                gsd.setStudentCode(DataUtil.safeToString(o[2]));</span>
+<span class="nc" id="L1001">                                gsd.setStudentName(DataUtil.safeToString(o[1]));</span>
+<span class="nc" id="L1002">                                gsd.setSubjectCode(subjectCode);</span>
+<span class="nc" id="L1003">                                gsd.setClassCode(classCode);</span>
+<span class="nc" id="L1004">                                gsdList.add(gsd);</span>
+
+<span class="nc" id="L1006">                                score.setIdStudent((Integer) o[0]);</span>
+<span class="nc" id="L1007">                                score.setId(DataUtil.safeToInt(o[17]));</span>
+<span class="nc" id="L1008">                                score.setCode(DataUtil.safeToString(o[18]));</span>
+<span class="nc" id="L1009">                                score.setParentCode(DataUtil.safeToString(o[19]));</span>
+<span class="nc" id="L1010">                                score.setTimes(DataUtil.safeToInt(o[20]));</span>
+<span class="nc" id="L1011">                                score.setValue(DataUtil.safeToString(o[21]));</span>
+<span class="nc" id="L1012">                                score.setCoeficient(DataUtil.safeToInt(o[22]));</span>
+<span class="nc" id="L1013">                                score.setScoreCode(scd.getCode());</span>
+<span class="nc" id="L1014">                                score.setScoreName(scd.getName());</span>
+<span class="nc" id="L1015">                                score.setQuantity(scd.getQuantity());</span>
+<span class="nc" id="L1016">                                score.setMinimumScore(scd.getMinimumScore());</span>
+<span class="nc" id="L1017">                                score.setSubjectCode(subjectCode);</span>
+<span class="nc" id="L1018">                                score.setType(0);</span>
+<span class="nc" id="L1019">                                return score;</span>
+                            }
+                    )
+<span class="nc" id="L1022">                    .collect(Collectors.toList());</span>
+<span class="nc" id="L1023">            List&lt;ConfigScoreDetail&gt; confScoreDetailsList = csdList.stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L1024">            Map&lt;Integer, List&lt;GradebookSubjectsDetailsVO&gt;&gt; mapGSD = gsdList</span>
+<span class="nc" id="L1025">                    .stream()</span>
+<span class="nc" id="L1026">                    .collect(Collectors.groupingBy(GradebookSubjectsDetailsVO::getStudentId));</span>
+
+<span class="nc" id="L1028">            Map&lt;Integer, List&lt;GradebookScoreDetailsVO&gt;&gt; mapScore = scoreList</span>
+<span class="nc" id="L1029">                    .stream()</span>
+<span class="nc" id="L1030">                    .collect(Collectors.groupingBy(GradebookScoreDetailsVO::getIdStudent));</span>
+
+<span class="nc" id="L1032">            Set&lt;Integer&gt; ids = mapGSD.keySet();</span>
+<span class="nc" id="L1033">            List&lt;GradebookSubjectsDetailsVO&gt; resultList = new ArrayList&lt;&gt;();</span>
+            //For each student
+<span class="nc bnc" id="L1035" title="All 2 branches missed.">            for (Integer id : ids) {</span>
+<span class="nc" id="L1036">                List&lt;GradebookSubjectsDetailsVO&gt; gradebookSubjectsDetailsDTOS = mapGSD.get(id).stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L1037">                GradebookSubjectsDetailsVO result = new GradebookSubjectsDetailsVO();</span>
+<span class="nc bnc" id="L1038" title="All 2 branches missed.">                if (!gradebookSubjectsDetailsDTOS.isEmpty()) {</span>
+<span class="nc" id="L1039">                    Optional&lt;GradebookSubjectsDetailsVO&gt; gsdOpt = Optional.ofNullable(gradebookSubjectsDetailsDTOS</span>
+<span class="nc" id="L1040">                            .stream()</span>
+<span class="nc" id="L1041">                            .distinct()</span>
+<span class="nc bnc" id="L1042" title="All 2 branches missed.">                            .filter(s -&gt; s.getId() != null)</span>
+<span class="nc" id="L1043">                            .sorted(Comparator.comparingLong(GradebookSubjectsDetailsVO::getId))</span>
+<span class="nc" id="L1044">                            .findFirst()</span>
+<span class="nc" id="L1045">                            .orElse(gradebookSubjectsDetailsDTOS.get(0)));</span>
+<span class="nc bnc" id="L1046" title="All 2 branches missed.">                    if (gsdOpt.isPresent()) {</span>
+<span class="nc" id="L1047">                        result = gsdOpt.get();</span>
+                    }
+                }
+<span class="nc" id="L1050">                List&lt;GradebookScoreDetailsVO&gt; scoreListOfStudent = mapScore.get(id).stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L1051">                List&lt;GradebookScoreDetailsVO&gt; listScore = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L1053" title="All 2 branches missed.">                for (ConfigScoreDetail x : confScoreDetailsList) {</span>
+<span class="nc bnc" id="L1054" title="All 2 branches missed.">                    for (int i = 0; i &lt; x.getQuantity(); i++) {</span>
+<span class="nc" id="L1055">                        int temp = i;</span>
+
+<span class="nc" id="L1057">                        List&lt;GradebookScoreDetailsVO&gt; scores = scoreListOfStudent</span>
+<span class="nc" id="L1058">                                .stream()</span>
+<span class="nc" id="L1059">                                .filter(</span>
+                                        o -&gt;
+<span class="nc bnc" id="L1061" title="All 2 branches missed.">                                                o.getId() != null &amp;&amp;</span>
+<span class="nc bnc" id="L1062" title="All 2 branches missed.">                                                        o.getTimes() != null &amp;&amp;</span>
+<span class="nc bnc" id="L1063" title="All 2 branches missed.">                                                        o.getTimes().equals(temp + 1) &amp;&amp;</span>
+<span class="nc bnc" id="L1064" title="All 2 branches missed.">                                                        o.getScoreCode().equals(x.getCode())</span>
+                                )
+<span class="nc" id="L1066">                                .collect(Collectors.toList());</span>
+<span class="nc" id="L1067">                        GradebookScoreDetailsVO item = new GradebookScoreDetailsVO();</span>
+<span class="nc bnc" id="L1068" title="All 2 branches missed.">                        if (!scores.isEmpty()) {</span>
+<span class="nc" id="L1069">                            listScore.add(scores.get(0));</span>
+                            ;
+                        } else {
+<span class="nc" id="L1072">                            item.setScoreName(x.getName());</span>
+<span class="nc" id="L1073">                            item.setScoreCode(x.getCode());</span>
+<span class="nc" id="L1074">                            item.setTimes(i + 1);</span>
+<span class="nc" id="L1075">                            item.setType(0);</span>
+<span class="nc" id="L1076">                            item.setCoeficient(x.getCoefficient());</span>
+<span class="nc" id="L1077">                            item.setQuantity(x.getQuantity());</span>
+<span class="nc" id="L1078">                            item.setMinimumScore(x.getMinimumScore());</span>
+<span class="nc" id="L1079">                            listScore.add(item);</span>
+                        }
+                    }
+<span class="nc" id="L1082">                }</span>
+<span class="nc" id="L1083">                result.setListScore(listScore);</span>
+<span class="nc" id="L1084">                resultList.add(result);</span>
+<span class="nc" id="L1085">            }</span>
+<span class="nc" id="L1086">            resultList.sort((o1, o2) -&gt; Collator.getInstance().compare(o1.getStudentName().substring(o1.getStudentName().lastIndexOf(' ') + 1), o2.getStudentName().substring(o2.getStudentName().lastIndexOf(' ') + 1)));</span>
+            // lay data tu file import va update vao data resultList vua lay ra
+            // tinh so cot
+            // doc file
+<span class="nc bnc" id="L1090" title="All 2 branches missed.">            if (file == null) {</span>
+<span class="nc" id="L1091">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Vui lòng nhập file&quot;, null);</span>
+            }
+<span class="nc bnc" id="L1093" title="All 2 branches missed.">            if (isExcelFormat(file)) {</span>
+<span class="nc" id="L1094">                Workbook workbook = new XSSFWorkbook(file.getInputStream());</span>
+<span class="nc" id="L1095">                Sheet sheet = workbook.getSheetAt(0);</span>
+<span class="nc" id="L1096">                FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();</span>
+
+<span class="nc" id="L1098">                List&lt;ConfigScoreDetail&gt; confScoreDetailsListInExcel = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1099">                String idForImport = sheet.getRow(100).getCell(20).getStringCellValue().trim();</span>
+<span class="nc" id="L1100">                List&lt;String&gt; confScoreDetailsIdList = Arrays.asList(idForImport.split(&quot;\\s&quot;));</span>
+<span class="nc bnc" id="L1101" title="All 2 branches missed.">                for (String id : confScoreDetailsIdList) {</span>
+<span class="nc bnc" id="L1102" title="All 2 branches missed.">                    confScoreDetailsListInExcel.addAll(confScoreDetailsList.stream().filter(csd -&gt; csd.getId() == Integer.parseInt(id.trim())).collect(Collectors.toList()));</span>
+<span class="nc" id="L1103">                }</span>
+<span class="nc" id="L1104">                Integer numberColumns = 3;</span>
+<span class="nc bnc" id="L1105" title="All 2 branches missed.">                for (ConfigScoreDetail csd : confScoreDetailsListInExcel) {</span>
+<span class="nc" id="L1106">                    numberColumns += csd.getQuantity();</span>
+<span class="nc" id="L1107">                }</span>
+
+<span class="nc bnc" id="L1109" title="All 2 branches missed.">                if (sheet.getRow(5).getPhysicalNumberOfCells() != numberColumns) {</span>
+<span class="nc" id="L1110">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Vui lòng chọn, nhập đầy đủ cột điểm&quot;, null);</span>
+                }
+                //check đầu điểm
+<span class="nc" id="L1113">                Integer index = 3;</span>
+<span class="nc bnc" id="L1114" title="All 2 branches missed.">                for (int i = 0; i &lt; confScoreDetailsListInExcel.size(); i++) {</span>
+<span class="nc bnc" id="L1115" title="All 2 branches missed.">                    if (!confScoreDetailsListInExcel.get(i).getName().trim().equals(sheet.getRow(3).getCell(index).getStringCellValue().trim())) {</span>
+<span class="nc" id="L1116">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng 4, tên đầu điểm thứ &quot; + (i + 1) + &quot; đang sai &quot;, null);</span>
+                    }
+<span class="nc" id="L1118">                    index += confScoreDetailsListInExcel.get(i).getQuantity();</span>
+                }
+                //check cột diểm
+<span class="nc" id="L1121">                int startColum = 3;</span>
+<span class="nc" id="L1122">                int endColumn = 3;</span>
+<span class="nc bnc" id="L1123" title="All 2 branches missed.">                for (ConfigScoreDetail csd : confScoreDetailsListInExcel) {</span>
+<span class="nc" id="L1124">                    int numberColumsForOneScore = csd.getQuantity();</span>
+<span class="nc" id="L1125">                    endColumn = startColum + numberColumsForOneScore - 1;</span>
+<span class="nc bnc" id="L1126" title="All 2 branches missed.">                    if (numberColumsForOneScore == 1) {</span>
+<span class="nc bnc" id="L1127" title="All 2 branches missed.">                        if (!sheet.getRow(4).getCell(startColum).getStringCellValue().trim().equals(&quot;Đ1&quot;)) {</span>
+<span class="nc" id="L1128">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng 5, tên cột điểm cột &quot; + startColum + &quot; đang sai &quot;, null);</span>
+                        }
+                    } else {
+<span class="nc" id="L1131">                        int a = 1;</span>
+<span class="nc bnc" id="L1132" title="All 2 branches missed.">                        for (int i = startColum; i &lt;= endColumn; i++) {</span>
+<span class="nc bnc" id="L1133" title="All 2 branches missed.">                            if (!sheet.getRow(4).getCell(i).getStringCellValue().trim().equals(&quot;Đ&quot; + a)) {</span>
+<span class="nc" id="L1134">                                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng 5, tên cột điểm cột &quot; + i + &quot; đang sai &quot;, null);</span>
+                            }
+<span class="nc" id="L1136">                            a++;</span>
+                        }
+                    }
+<span class="nc" id="L1139">                    startColum = endColumn + 1;</span>
+<span class="nc" id="L1140">                }</span>
+
+                try {
+<span class="nc bnc" id="L1143" title="All 2 branches missed.">                    for (int i = 5; i &lt; sheet.getPhysicalNumberOfRows(); i++) {</span>
+<span class="nc" id="L1144">                        int csdIndex = -1;</span>
+<span class="nc" id="L1145">                        final Row row = sheet.getRow(i);</span>
+<span class="nc bnc" id="L1146" title="All 2 branches missed.">                        if (row.getCell(1).getCellTypeEnum() == CellType.BLANK) {</span>
+<span class="nc" id="L1147">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot; ,cột Mã học sinh không được để trống&quot;, null);</span>
+<span class="nc bnc" id="L1148" title="All 2 branches missed.">                        } else if (!resultList.get(i - 5).getStudentCode().equals(row.getCell(1).getStringCellValue().trim())) {</span>
+<span class="nc" id="L1149">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot; , Mã học sinh đang sai&quot;, null);</span>
+
+                        }
+<span class="nc bnc" id="L1152" title="All 2 branches missed.">                        if (row.getCell(2).getCellTypeEnum() == CellType.BLANK) {</span>
+<span class="nc" id="L1153">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot; ,cột Tên học sinh không được để trống&quot;, null);</span>
+<span class="nc bnc" id="L1154" title="All 2 branches missed.">                        } else if (!resultList.get(i - 5).getStudentName().equals(row.getCell(2).getStringCellValue().trim())) {</span>
+<span class="nc" id="L1155">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot; ,Tên học sinh đang sai&quot;, null);</span>
+                        }
+<span class="nc bnc" id="L1157" title="All 2 branches missed.">                        for (int j = 3; j &lt; numberColumns; j++) {</span>
+<span class="nc" id="L1158">                            final Cell cell = row.getCell(j);</span>
+<span class="nc" id="L1159">                            Integer times = Integer.parseInt(sheet.getRow(4).getCell(j).getStringCellValue().trim().substring(1, 2));</span>
+<span class="nc bnc" id="L1160" title="All 2 branches missed.">                            if (times == 1) {</span>
+<span class="nc" id="L1161">                                csdIndex++;</span>
+                            }
+<span class="nc" id="L1163">                            CellValue cellValue = evaluator.evaluate(cell);</span>
+<span class="nc bnc" id="L1164" title="All 4 branches missed.">                            if (cell.getCellTypeEnum() == CellType.STRING || cell.getCellTypeEnum() == CellType.BLANK) {// khong nhap diem thi nhay sang o tiepư</span>
+<span class="nc" id="L1165">                                continue;</span>
+                            }
+<span class="nc bnc" id="L1167" title="All 2 branches missed.">                            if (!(cell.getCellTypeEnum() == CellType.NUMERIC)) {// khong nhap diem thi nhay sang o tiepư</span>
+<span class="nc" id="L1168">                                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot;, điểm phải nhập số&quot;, null);</span>
+                            }
+<span class="nc bnc" id="L1170" title="All 4 branches missed.">                            if (cell.getNumericCellValue() &gt; 10 || cell.getNumericCellValue() &lt; 0) {// khong nhap diem thi nhay sang o tiepư</span>
+<span class="nc" id="L1171">                                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot;, điểm phải bé hơn 10 và lớn hơn 0&quot;, null);</span>
+                            }
+<span class="nc" id="L1173">                            String studentCode = sheet.getRow(i).getCell(1).getStringCellValue().trim();</span>
+<span class="nc" id="L1174">                            String csdCode = confScoreDetailsListInExcel.get(csdIndex).getCode();</span>
+<span class="nc" id="L1175">                            Optional&lt;GradebookScoreDetails&gt; gsd = gradebookScoreDetailsRepository.findByScoreCodeAndTimes(csdCode, times, schoolYear, semester, classCode, studentCode, subjectCode);</span>
+<span class="nc bnc" id="L1176" title="All 2 branches missed.">                            if (gsd.isPresent()) {</span>
+<span class="nc bnc" id="L1177" title="All 2 branches missed.">                                for (GradebookScoreDetailsVO gsdVO : resultList.get(i - 5).getListScore()) {</span>
+<span class="nc bnc" id="L1178" title="All 6 branches missed.">                                    if (gsdVO.getCode().equals(gsd.get().getCode()) &amp;&amp; gsdVO.getScoreCode().equals(gsd.get().getScoreCode()) &amp;&amp; gsdVO.getTimes().equals(gsd.get().getTimes())) {</span>
+<span class="nc" id="L1179">                                        gsdVO.setValue(cell.getNumericCellValue() + &quot;&quot;);</span>
+                                    }
+<span class="nc" id="L1181">                                }</span>
+                            } else {
+<span class="nc bnc" id="L1183" title="All 2 branches missed.">                                for (GradebookScoreDetailsVO gsdVO : resultList.get(i - 5).getListScore()) {</span>
+<span class="nc bnc" id="L1184" title="All 2 branches missed.">                                    if (gsdVO.getScoreCode().equals(confScoreDetailsListInExcel.get(csdIndex).getCode()) &amp;&amp;</span>
+<span class="nc bnc" id="L1185" title="All 2 branches missed.">                                            gsdVO.getTimes().equals(times)) {</span>
+<span class="nc" id="L1186">                                        gsdVO.setValue(cell.getNumericCellValue() + &quot;&quot;);</span>
+                                    }
+<span class="nc" id="L1188">                                }</span>
+                            }
+                        }
+<span class="nc" id="L1191">                        resultList.get(i - 5).setUpdater(username);</span>
+                    }
+<span class="nc" id="L1193">                } catch (Exception e) {</span>
+<span class="nc" id="L1194">                    e.printStackTrace();</span>
+<span class="nc" id="L1195">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Lưu điểm không thành công&quot;, null);</span>
+<span class="nc" id="L1196">                }</span>
+<span class="nc" id="L1197">            } else {</span>
+<span class="nc" id="L1198">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;File không đúng định dạng&quot;, null);</span>
+            }
+            // tinh diem trung binh cho 1 hoc ky
+
+<span class="nc bnc" id="L1202" title="All 2 branches missed.">            for (GradebookSubjectsDetailsVO gsd : resultList) {</span>
+<span class="nc" id="L1203">                Double total = 0D;</span>
+<span class="nc" id="L1204">                Integer coefficient = 0;</span>
+<span class="nc" id="L1205">                Boolean check = true;</span>
+<span class="nc bnc" id="L1206" title="All 2 branches missed.">                for (GradebookScoreDetailsVO gScored : gsd.getListScore()) {</span>
+<span class="nc bnc" id="L1207" title="All 2 branches missed.">                    if (gScored.getValue() == null) {</span>
+<span class="nc" id="L1208">                        check = false;</span>
+                    }
+<span class="nc" id="L1210">                }</span>
+<span class="nc bnc" id="L1211" title="All 2 branches missed.">                if (check) {</span>
+
+<span class="nc bnc" id="L1213" title="All 2 branches missed.">                    for (GradebookScoreDetailsVO gScored : gsd.getListScore()) {</span>
+<span class="nc" id="L1214">                        total += Double.parseDouble(gScored.getValue()) * gScored.getCoeficient();</span>
+<span class="nc" id="L1215">                        coefficient += gScored.getCoeficient();</span>
+<span class="nc" id="L1216">                    }</span>
+<span class="nc" id="L1217">                    Double avgScore = DataUtil.round(total / coefficient, 2);</span>
+<span class="nc" id="L1218">                    gsd.setAvgScore(avgScore.toString());</span>
+                }
+<span class="nc" id="L1220">            }</span>
+<span class="nc" id="L1221">            gradeBookForm.setSubjectsDetails(resultList);</span>
+<span class="nc" id="L1222">            ServiceResult&lt;Boolean&gt; saveResultToDB = save(gradeBookForm, login);</span>
+<span class="nc" id="L1223">            return saveResultToDB;</span>
+<span class="nc" id="L1224">        } catch (Exception e) {</span>
+<span class="nc" id="L1225">            e.printStackTrace();</span>
+<span class="nc" id="L1226">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Lưu điểm thất bại, có lỗi xảy ra&quot;, null);</span>
+        }
+    }
+
+    @Override
+    public ByteArrayInputStream exportExcelSampleGrade(String year, String subjectCode, String classCode, Integer semester, ConfigGradeDetailIdListForm configGradeDetailIdListForm) {
+<span class="nc" id="L1232">        ClassRoom classRoom = classRoomRepository.getClassRoomByCode(classCode).get();</span>
+<span class="nc" id="L1233">        Subjects subjects = subjectsRepository.findByCode(subjectCode);</span>
+<span class="nc" id="L1234">        List&lt;ConfigGradeDetail&gt; cgdList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1235">        List&lt;GradebookSubjectsDetailsVO&gt; gsdList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1236">        List&lt;GradebookScoreDetailsVO&gt; scoreList = gradebookRepository</span>
+<span class="nc" id="L1237">                .getStudentListWithEachClassification(classCode, subjectCode, year, 0, 1, semester + &quot;&quot;)</span>
+<span class="nc" id="L1238">                .stream()</span>
+<span class="nc" id="L1239">                .map(</span>
+                        o -&gt; {
+<span class="nc" id="L1241">                            GradebookScoreDetailsVO score = new GradebookScoreDetailsVO();</span>
+<span class="nc" id="L1242">                            score.setIdStudent((Integer) o[0]);</span>
+
+<span class="nc" id="L1244">                            ConfigGradeDetail cgd = new ConfigGradeDetail();</span>
+<span class="nc" id="L1245">                            cgd.setId((Integer) o[3]);</span>
+<span class="nc" id="L1246">                            cgd.setCode(DataUtil.safeToString(o[4]));</span>
+<span class="nc" id="L1247">                            cgd.setName(DataUtil.safeToString(o[5]));</span>
+<span class="nc" id="L1248">                            cgd.setTypeChoose((Integer) o[6]);</span>
+<span class="nc" id="L1249">                            cgd.setSelectedValue(DataUtil.safeToString(o[7]));</span>
+<span class="nc" id="L1250">                            cgdList.add(cgd);</span>
+
+<span class="nc" id="L1252">                            GradebookSubjectsDetailsVO gsd = new GradebookSubjectsDetailsVO();</span>
+<span class="nc" id="L1253">                            gsd.setStudentId(score.getIdStudent());</span>
+<span class="nc" id="L1254">                            gsd.setStudentCode(DataUtil.safeToString(o[2]));</span>
+<span class="nc" id="L1255">                            gsd.setStudentName(DataUtil.safeToString(o[1]));</span>
+<span class="nc" id="L1256">                            gsdList.add(gsd);</span>
+<span class="nc" id="L1257">                            score.setTypeChoose(cgd.getTypeChoose());</span>
+<span class="nc bnc" id="L1258" title="All 2 branches missed.">                            if (cgd.getTypeChoose().equals(1)) {</span>
+<span class="nc" id="L1259">                                String selectedValue = cgd.getSelectedValue();</span>
+<span class="nc" id="L1260">                                List&lt;String&gt; selectList = Arrays</span>
+<span class="nc" id="L1261">                                        .stream(selectedValue.split(&quot;,&quot;))</span>
+<span class="nc" id="L1262">                                        .map(str -&gt; str.trim())</span>
+<span class="nc" id="L1263">                                        .collect(Collectors.toList());</span>
+<span class="nc" id="L1264">                                score.setSelectedValue(selectList);</span>
+                            }
+<span class="nc" id="L1266">                            return score;</span>
+                        }
+                )
+<span class="nc" id="L1269">                .collect(Collectors.toList());</span>
+<span class="nc" id="L1270">        Map&lt;Integer, List&lt;GradebookSubjectsDetailsVO&gt;&gt; mapGSD = gsdList</span>
+<span class="nc" id="L1271">                .stream()</span>
+<span class="nc" id="L1272">                .collect(Collectors.groupingBy(GradebookSubjectsDetailsVO::getStudentId));</span>
+
+<span class="nc" id="L1274">        Map&lt;Integer, List&lt;GradebookScoreDetailsVO&gt;&gt; mapScore = scoreList</span>
+<span class="nc" id="L1275">                .stream()</span>
+<span class="nc" id="L1276">                .collect(Collectors.groupingBy(GradebookScoreDetailsVO::getIdStudent));</span>
+<span class="nc" id="L1277">        Set&lt;Integer&gt; ids = mapGSD.keySet();</span>
+<span class="nc" id="L1278">        List&lt;ConfigGradeDetail&gt; configGradeDetailList = cgdList.stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L1279">        List&lt;ConfigGradeDetail&gt; confGradeDetailsListFilter = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L1280" title="All 2 branches missed.">        for (Integer id : configGradeDetailIdListForm.getConfGradeDetailsIdList()) {</span>
+<span class="nc bnc" id="L1281" title="All 2 branches missed.">            confGradeDetailsListFilter.addAll(configGradeDetailList.stream().filter(cgd -&gt; cgd.getId() == id).collect(Collectors.toList()));</span>
+<span class="nc" id="L1282">        }</span>
+<span class="nc" id="L1283">        List&lt;GradebookSubjectsDetailsVO&gt; resultList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L1284" title="All 2 branches missed.">        for (Integer id : ids) {</span>
+<span class="nc bnc" id="L1285" title="All 2 branches missed.">            GradebookSubjectsDetailsVO result = mapGSD.get(id).isEmpty() ? new GradebookSubjectsDetailsVO() : mapGSD.get(id).get(0);</span>
+<span class="nc" id="L1286">            List&lt;GradebookScoreDetailsVO&gt; scoreListOfStudent = mapScore.get(id).stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L1287">            result.setListScore(scoreListOfStudent);</span>
+<span class="nc" id="L1288">            resultList.add(result);</span>
+<span class="nc" id="L1289">        }</span>
+<span class="nc" id="L1290">        resultList.sort((o1, o2) -&gt; Collator.getInstance().compare(o1.getStudentName().substring(o1.getStudentName().lastIndexOf(' ') + 1), o2.getStudentName().substring(o2.getStudentName().lastIndexOf(' ') + 1)));</span>
+        try {
+<span class="nc" id="L1292">            Workbook workbook = new XSSFWorkbook();</span>
+<span class="nc" id="L1293">            Sheet GradeBookSheet = workbook.createSheet(&quot;GradeBookScore&quot;);</span>
+
+<span class="nc" id="L1295">            CellStyle commonStyle = workbook.createCellStyle();</span>
+<span class="nc" id="L1296">            commonStyle.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L1297">            commonStyle.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+
+<span class="nc" id="L1299">            GradeBookSheet.createRow(0).createCell(0).setCellValue(&quot;SỔ ĐIỂM &quot; + classRoom.getName() + &quot; - Môn: &quot; + subjects.getName());</span>
+<span class="nc" id="L1300">            GradeBookSheet.getRow(0).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L1301">            GradeBookSheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 4));</span>
+
+<span class="nc" id="L1303">            GradeBookSheet.createRow(1).createCell(0).setCellValue(&quot;Học kỳ &quot; + semester + &quot; - Năm học : &quot; + year);</span>
+<span class="nc" id="L1304">            GradeBookSheet.getRow(1).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L1305">            GradeBookSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 4));</span>
+<span class="nc" id="L1306">            GradeBookSheet.createRow(2);</span>
+<span class="nc" id="L1307">            GradeBookSheet.createRow(3);</span>
+
+<span class="nc" id="L1309">            GradeBookSheet.getRow(3).createCell(0).setCellValue(&quot;STT&quot;);</span>
+<span class="nc" id="L1310">            GradeBookSheet.getRow(3).createCell(1).setCellValue(&quot;Mã học sinh (*)&quot;);</span>
+<span class="nc" id="L1311">            GradeBookSheet.getRow(3).createCell(2).setCellValue(&quot;Tên học sinh (*)&quot;);</span>
+//tao ten cac dau diem
+<span class="nc bnc" id="L1313" title="All 2 branches missed.">            for (int i = 0; i &lt; confGradeDetailsListFilter.size(); i++) {</span>
+<span class="nc" id="L1314">                GradeBookSheet.getRow(3).createCell(i + 3).setCellValue(confGradeDetailsListFilter.get(i).getName());</span>
+            }
+            //create row
+<span class="nc bnc" id="L1317" title="All 2 branches missed.">            for (int i = 0; i &lt; resultList.size(); i++) {</span>
+<span class="nc" id="L1318">                GradeBookSheet.createRow(i + 4);</span>
+<span class="nc bnc" id="L1319" title="All 2 branches missed.">                for (int j = 0; j &lt;= confGradeDetailsListFilter.size() + 2; j++) {</span>
+<span class="nc" id="L1320">                    GradeBookSheet.getRow(i + 4).createCell(j);</span>
+                }
+            }
+
+            //   GradeBookSheet.getRow(3).createCell(confGradeDetailsListFilter.size() + 3).setCellValue(&quot;Nhận xét&quot;);
+
+<span class="nc bnc" id="L1326" title="All 2 branches missed.">            for (int i = 0; i &lt; resultList.size(); i++) {</span>
+<span class="nc" id="L1327">                GradeBookSheet.createRow(i + 4);</span>
+<span class="nc" id="L1328">                GradeBookSheet.getRow(i + 4).createCell(0).setCellValue(i + 1);</span>
+<span class="nc" id="L1329">                GradeBookSheet.getRow(i + 4).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L1330">                GradeBookSheet.getRow(i + 4).createCell(1).setCellValue(resultList.get(i).getStudentCode());</span>
+<span class="nc" id="L1331">                GradeBookSheet.getRow(i + 4).createCell(2).setCellValue(resultList.get(i).getStudentName());</span>
+                //config o nhap diem cho 2 kieu :nhap diem hoac chon tu danh sach
+
+<span class="nc bnc" id="L1334" title="All 2 branches missed.">                for (int j = 0; j &lt; confGradeDetailsListFilter.size(); j++) {</span>
+<span class="nc bnc" id="L1335" title="All 2 branches missed.">                    if (confGradeDetailsListFilter.get(j).getTypeChoose() == 1) {</span>
+
+<span class="nc" id="L1337">                        String selectedValue = confGradeDetailsListFilter.get(j).getSelectedValue();</span>
+<span class="nc" id="L1338">                        List&lt;String&gt; selectList = Arrays</span>
+<span class="nc" id="L1339">                                .stream(selectedValue.split(&quot;,&quot;))</span>
+<span class="nc" id="L1340">                                .map(str -&gt; str.trim())</span>
+<span class="nc" id="L1341">                                .collect(Collectors.toList());</span>
+<span class="nc" id="L1342">                        String[] selectedValues = new String[selectList.size()];</span>
+<span class="nc bnc" id="L1343" title="All 2 branches missed.">                        for (int x = 0; x &lt; selectList.size(); x++) {</span>
+<span class="nc" id="L1344">                            selectedValues[x] = selectList.get(x);</span>
+                        }
+<span class="nc" id="L1346">                        GradeBookSheet.getRow(i + 4).createCell(j + 3);</span>
+<span class="nc" id="L1347">                        DataValidation dataValidation = null;</span>
+<span class="nc" id="L1348">                        DataValidationConstraint constraint = null;</span>
+<span class="nc" id="L1349">                        DataValidationHelper validationHelper = null;</span>
+
+<span class="nc" id="L1351">                        validationHelper = new XSSFDataValidationHelper((XSSFSheet) GradeBookSheet);</span>
+<span class="nc" id="L1352">                        CellRangeAddressList addressList = new CellRangeAddressList(i + 4, i + 4, j + 3, j + 3);</span>
+<span class="nc" id="L1353">                        constraint = validationHelper.createExplicitListConstraint(selectedValues);</span>
+<span class="nc" id="L1354">                        dataValidation = validationHelper.createValidation(constraint, addressList);</span>
+<span class="nc" id="L1355">                        dataValidation.setSuppressDropDownArrow(true);</span>
+<span class="nc" id="L1356">                        GradeBookSheet.addValidationData(dataValidation);</span>
+<span class="nc" id="L1357">                    } else {</span>
+<span class="nc" id="L1358">                        GradeBookSheet.getRow(i + 4).createCell(j + 3);</span>
+                    }
+                }
+                // GradeBookSheet.getRow(i + 4).createCell(confGradeDetailsListFilter.size() + 3);//cot nhan xet
+            }
+
+<span class="nc bnc" id="L1364" title="All 2 branches missed.">            for (int j = 0; j &lt; confGradeDetailsListFilter.size() + 3; j++) {</span>
+<span class="nc" id="L1365">                GradeBookSheet.autoSizeColumn(j);</span>
+            }
+
+<span class="nc" id="L1368">            CellStyle cellStyle = workbook.createCellStyle();</span>
+<span class="nc" id="L1369">            cellStyle.setTopBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L1370">            cellStyle.setRightBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L1371">            cellStyle.setBottomBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L1372">            cellStyle.setLeftBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L1373">            cellStyle.setBorderTop(BorderStyle.THIN);</span>
+<span class="nc" id="L1374">            cellStyle.setBorderBottom(BorderStyle.THIN);</span>
+<span class="nc" id="L1375">            cellStyle.setBorderLeft(BorderStyle.THIN);</span>
+<span class="nc" id="L1376">            cellStyle.setBorderRight(BorderStyle.THIN);</span>
+
+<span class="nc bnc" id="L1378" title="All 2 branches missed.">            for (int i = 3; i &lt; resultList.size() + 4; i++) {</span>
+<span class="nc bnc" id="L1379" title="All 2 branches missed.">                for (int j = 0; j &lt; confGradeDetailsListFilter.size() + 3; j++) {</span>
+<span class="nc" id="L1380">                    GradeBookSheet.getRow(i).getCell(j).setCellStyle(cellStyle);</span>
+                }
+            }
+<span class="nc" id="L1383">            cellStyle.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L1384">            cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+<span class="nc" id="L1385">            GradeBookSheet.getRow(3).getCell(0).setCellStyle(cellStyle);</span>
+<span class="nc" id="L1386">            GradeBookSheet.getRow(3).getCell(1).setCellStyle(cellStyle);</span>
+<span class="nc" id="L1387">            GradeBookSheet.getRow(3).getCell(2).setCellStyle(cellStyle);</span>
+<span class="nc" id="L1388">            GradeBookSheet.getRow(3).getCell(3).setCellStyle(cellStyle);</span>
+<span class="nc bnc" id="L1389" title="All 2 branches missed.">            for (int i = 0; i &lt; resultList.size(); i++) {</span>
+<span class="nc" id="L1390">                GradeBookSheet.getRow(i + 4).getCell(0).setCellStyle(cellStyle);</span>
+            }
+<span class="nc" id="L1392">            ByteArrayOutputStream out = new ByteArrayOutputStream();</span>
+<span class="nc" id="L1393">            String idForImport = &quot;&quot;;</span>
+<span class="nc bnc" id="L1394" title="All 2 branches missed.">            for (Integer id : configGradeDetailIdListForm.getConfGradeDetailsIdList()) {</span>
+<span class="nc" id="L1395">                idForImport += id + &quot; &quot;;</span>
+<span class="nc" id="L1396">            }</span>
+<span class="nc bnc" id="L1397" title="All 2 branches missed.">            for (int i = 3; i &lt;= GradeBookSheet.getRow(4).getPhysicalNumberOfCells(); i++) {</span>
+<span class="nc" id="L1398">                GradeBookSheet.setColumnWidth(i, 15 * 256);</span>
+            }
+<span class="nc" id="L1400">            CellStyle style = workbook.createCellStyle();</span>
+<span class="nc" id="L1401">            Font font = workbook.createFont();</span>
+<span class="nc" id="L1402">            font.setColor(HSSFColor.WHITE.index);</span>
+<span class="nc" id="L1403">            style.setFont(font);</span>
+<span class="nc" id="L1404">            GradeBookSheet.createRow(100).createCell(20).setCellValue(idForImport);</span>
+<span class="nc" id="L1405">            GradeBookSheet.getRow(100).getCell(20).setCellStyle(style);</span>
+<span class="nc" id="L1406">            workbook.write(out);</span>
+<span class="nc" id="L1407">            workbook.close();</span>
+<span class="nc" id="L1408">            return new ByteArrayInputStream(out.toByteArray());</span>
+<span class="nc" id="L1409">        } catch (Exception e) {</span>
+<span class="nc" id="L1410">            e.printStackTrace();</span>
+<span class="nc" id="L1411">            throw new ValidationException(&quot;file&quot;, &quot;Không thể export file&quot;);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; importExcelGrade(MultipartFile file, String subjectCode, String classCode, String schoolYear, String semester, String login) throws IOException {
+<span class="nc" id="L1417">        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();</span>
+        String username;
+<span class="nc bnc" id="L1419" title="All 2 branches missed.">        if (principal instanceof UserDetails) {</span>
+<span class="nc" id="L1420">            username = ((UserDetails) principal).getUsername();</span>
+        } else {
+<span class="nc" id="L1422">            username = principal.toString();</span>
+        }
+<span class="nc" id="L1424">        GradeBookForm gradeBookForm = new GradeBookForm();</span>
+<span class="nc" id="L1425">        gradeBookForm.setSemester(semester);</span>
+<span class="nc" id="L1426">        gradeBookForm.setSchoolYear(schoolYear);</span>
+<span class="nc" id="L1427">        gradeBookForm.setClassCode(classCode);</span>
+<span class="nc" id="L1428">        gradeBookForm.setSubjectCode(subjectCode);</span>
+<span class="nc" id="L1429">        List&lt;ConfigGradeDetail&gt; cgdList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1430">        List&lt;GradebookSubjectsDetailsVO&gt; gsdList = new ArrayList&lt;&gt;();</span>
+        try {
+<span class="nc" id="L1432">            List&lt;GradebookScoreDetailsVO&gt; scoreList = gradebookRepository</span>
+<span class="nc" id="L1433">                    .getStudentListWithEachClassification(gradeBookForm.getClassCode(), gradeBookForm.getSubjectCode(), gradeBookForm.getSchoolYear(), 0, 1, gradeBookForm.getSemester())</span>
+<span class="nc" id="L1434">                    .stream()</span>
+<span class="nc" id="L1435">                    .map(</span>
+                            o -&gt; {
+<span class="nc" id="L1437">                                GradebookScoreDetailsVO score = new GradebookScoreDetailsVO();</span>
+<span class="nc" id="L1438">                                score.setIdStudent((Integer) o[0]);</span>
+
+<span class="nc" id="L1440">                                ConfigGradeDetail cgd = new ConfigGradeDetail();</span>
+<span class="nc" id="L1441">                                cgd.setId((Integer) o[3]);</span>
+<span class="nc" id="L1442">                                cgd.setCode(DataUtil.safeToString(o[4]));</span>
+<span class="nc" id="L1443">                                cgd.setName(DataUtil.safeToString(o[5]));</span>
+<span class="nc" id="L1444">                                cgd.setTypeChoose((Integer) o[6]);</span>
+<span class="nc" id="L1445">                                cgd.setSelectedValue(DataUtil.safeToString(o[7]));</span>
+<span class="nc" id="L1446">                                cgdList.add(cgd);</span>
+
+<span class="nc" id="L1448">                                GradebookSubjectsDetailsVO gsd = new GradebookSubjectsDetailsVO();</span>
+<span class="nc" id="L1449">                                gsd.setId((Integer) o[8]);</span>
+<span class="nc" id="L1450">                                gsd.setCode(DataUtil.safeToString(o[9]));</span>
+<span class="nc" id="L1451">                                gsd.setParentCode(DataUtil.safeToString(o[10]));</span>
+<span class="nc" id="L1452">                                gsd.setEvaluate(DataUtil.safeToString(o[11]));</span>
+<span class="nc" id="L1453">                                gsd.setStatus((Integer) o[13]);</span>
+<span class="nc" id="L1454">                                gsd.setStudentId(score.getIdStudent());</span>
+<span class="nc" id="L1455">                                gsd.setStudentCode(DataUtil.safeToString(o[2]));</span>
+<span class="nc" id="L1456">                                gsd.setStudentName(DataUtil.safeToString(o[1]));</span>
+<span class="nc" id="L1457">                                gsd.setSubjectCode(gradeBookForm.getSubjectCode());</span>
+<span class="nc" id="L1458">                                gsd.setClassCode(gradeBookForm.getClassCode());</span>
+<span class="nc" id="L1459">                                gsdList.add(gsd);</span>
+
+<span class="nc" id="L1461">                                score.setId((Integer) o[14]);</span>
+<span class="nc" id="L1462">                                score.setCode(DataUtil.safeToString(o[15]));</span>
+<span class="nc" id="L1463">                                score.setParentCode(DataUtil.safeToString(o[16]));</span>
+<span class="nc" id="L1464">                                score.setTimes((Integer) o[17]);</span>
+<span class="nc" id="L1465">                                score.setValue(DataUtil.safeToString(o[18]));</span>
+<span class="nc" id="L1466">                                score.setCoeficient((Integer) o[19]);</span>
+<span class="nc" id="L1467">                                score.setScoreCode(cgd.getCode());</span>
+<span class="nc" id="L1468">                                score.setScoreName(cgd.getName());</span>
+<span class="nc" id="L1469">                                score.setSubjectCode(gradeBookForm.getSubjectCode());</span>
+<span class="nc" id="L1470">                                score.setType(1);</span>
+<span class="nc" id="L1471">                                score.setTypeChoose(cgd.getTypeChoose());</span>
+<span class="nc bnc" id="L1472" title="All 2 branches missed.">                                if (cgd.getTypeChoose().equals(1)) {</span>
+<span class="nc" id="L1473">                                    String selectedValue = cgd.getSelectedValue();</span>
+<span class="nc" id="L1474">                                    List&lt;String&gt; selectList = Arrays</span>
+<span class="nc" id="L1475">                                            .stream(selectedValue.split(&quot;,&quot;))</span>
+<span class="nc" id="L1476">                                            .map(str -&gt; str.trim())</span>
+<span class="nc" id="L1477">                                            .collect(Collectors.toList());</span>
+<span class="nc" id="L1478">                                    score.setSelectedValue(selectList);</span>
+                                }
+<span class="nc" id="L1480">                                return score;</span>
+                            }
+                    )
+<span class="nc" id="L1483">                    .collect(Collectors.toList());</span>
+<span class="nc" id="L1484">            Map&lt;Integer, List&lt;GradebookSubjectsDetailsVO&gt;&gt; mapGSD = gsdList</span>
+<span class="nc" id="L1485">                    .stream()</span>
+<span class="nc" id="L1486">                    .collect(Collectors.groupingBy(GradebookSubjectsDetailsVO::getStudentId));</span>
+<span class="nc" id="L1487">            Map&lt;Integer, List&lt;GradebookScoreDetailsVO&gt;&gt; mapScore = scoreList</span>
+<span class="nc" id="L1488">                    .stream()</span>
+<span class="nc" id="L1489">                    .collect(Collectors.groupingBy(GradebookScoreDetailsVO::getIdStudent));</span>
+<span class="nc" id="L1490">            Set&lt;Integer&gt; ids = mapGSD.keySet();</span>
+<span class="nc" id="L1491">            List&lt;ConfigGradeDetail&gt; confGradeDetailsList = cgdList.stream().distinct().collect(Collectors.toList());</span>
+
+<span class="nc" id="L1493">            List&lt;GradebookSubjectsDetailsVO&gt; resultList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L1494" title="All 2 branches missed.">            for (Integer id : ids) {</span>
+<span class="nc bnc" id="L1495" title="All 2 branches missed.">                GradebookSubjectsDetailsVO result = mapGSD.get(id).isEmpty() ? new GradebookSubjectsDetailsVO() : mapGSD.get(id).get(0);</span>
+<span class="nc" id="L1496">                List&lt;GradebookScoreDetailsVO&gt; scoreListOfStudent = mapScore.get(id).stream().distinct().collect(Collectors.toList());</span>
+<span class="nc" id="L1497">                result.setListScore(scoreListOfStudent);</span>
+<span class="nc" id="L1498">                resultList.add(result);</span>
+<span class="nc" id="L1499">            }</span>
+<span class="nc" id="L1500">            resultList.sort((o1, o2) -&gt; Collator.getInstance().compare(o1.getStudentName().substring(o1.getStudentName().lastIndexOf(' ') + 1), o2.getStudentName().substring(o2.getStudentName().lastIndexOf(' ') + 1)));</span>
+            // doc file
+<span class="nc bnc" id="L1502" title="All 2 branches missed.">            if (file == null) {</span>
+<span class="nc" id="L1503">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Vui lòng nhập file&quot;, null);</span>
+            }
+<span class="nc bnc" id="L1505" title="All 2 branches missed.">            if (isExcelFormat(file)) {</span>
+<span class="nc" id="L1506">                Workbook workbook = new XSSFWorkbook(file.getInputStream());</span>
+<span class="nc" id="L1507">                Sheet sheet = workbook.getSheetAt(0);</span>
+
+<span class="nc" id="L1509">                List&lt;ConfigGradeDetail&gt; confGradeDetailsListInExcel = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1510">                String idForImport = sheet.getRow(100).getCell(20).getStringCellValue().trim();</span>
+<span class="nc" id="L1511">                List&lt;String&gt; confGradeDetailsIdList = Arrays.asList(idForImport.split(&quot;\\s&quot;));</span>
+<span class="nc bnc" id="L1512" title="All 2 branches missed.">                for (String id : confGradeDetailsIdList) {</span>
+<span class="nc bnc" id="L1513" title="All 2 branches missed.">                    confGradeDetailsListInExcel.addAll(confGradeDetailsList.stream().filter(csd -&gt; csd.getId() == Integer.parseInt(id.trim())).collect(Collectors.toList()));</span>
+<span class="nc" id="L1514">                }</span>
+
+<span class="nc bnc" id="L1516" title="All 2 branches missed.">                if (sheet.getRow(4).getPhysicalNumberOfCells() != confGradeDetailsListInExcel.size() + 3) {</span>
+<span class="nc" id="L1517">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Vui lòng chọn, nhập đầy đủ cột điểm&quot;, null);</span>
+                }
+                //check đầu điểm
+<span class="nc" id="L1520">                Integer index = 3;</span>
+<span class="nc bnc" id="L1521" title="All 2 branches missed.">                for (int i = 0; i &lt; confGradeDetailsListInExcel.size(); i++) {</span>
+<span class="nc bnc" id="L1522" title="All 2 branches missed.">                    if (!confGradeDetailsListInExcel.get(i).getName().trim().equals(sheet.getRow(3).getCell(index).getStringCellValue().trim())) {</span>
+<span class="nc" id="L1523">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng 3, tên đầu điểm thứ &quot; + (i + 1) + &quot; đang sai &quot;, null);</span>
+                    }
+<span class="nc" id="L1525">                    index++;</span>
+                }
+                try {
+<span class="nc bnc" id="L1528" title="All 2 branches missed.">                    for (int i = 4; i &lt; sheet.getPhysicalNumberOfRows(); i++) {</span>
+<span class="nc" id="L1529">                        final Row row = sheet.getRow(i);</span>
+<span class="nc bnc" id="L1530" title="All 2 branches missed.">                        if (row.getCell(1).getCellTypeEnum() == CellType.BLANK) {</span>
+<span class="nc" id="L1531">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot; ,cột Mã học sinh không được để trống&quot;, null);</span>
+<span class="nc bnc" id="L1532" title="All 2 branches missed.">                        } else if (!resultList.get(i - 4).getStudentCode().equals(row.getCell(1).getStringCellValue().trim())) {</span>
+<span class="nc" id="L1533">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot; , Mã học sinh đang sai&quot;, null);</span>
+
+                        }
+<span class="nc bnc" id="L1536" title="All 2 branches missed.">                        if (row.getCell(2).getCellTypeEnum() == CellType.BLANK) {</span>
+<span class="nc" id="L1537">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot; ,cột Tên học sinh không được để trống&quot;, null);</span>
+<span class="nc bnc" id="L1538" title="All 2 branches missed.">                        } else if (!resultList.get(i - 4).getStudentName().equals(row.getCell(2).getStringCellValue().trim())) {</span>
+<span class="nc" id="L1539">                            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Dòng &quot; + (i + 1) + &quot; , Tên học sinh đang sai&quot;, null);</span>
+
+                        }
+<span class="nc bnc" id="L1542" title="All 2 branches missed.">                        for (int j = 3; j &lt; confGradeDetailsListInExcel.size() + 3; j++) {</span>
+<span class="nc" id="L1543">                            Cell cell = row.getCell(j);</span>
+<span class="nc bnc" id="L1544" title="All 2 branches missed.">                            if (cell.getCellTypeEnum() == CellType.BLANK) {// khong nhap diem thi nhay sang o tiepư</span>
+<span class="nc" id="L1545">                                continue;</span>
+                            }
+<span class="nc" id="L1547">                            resultList.get(i - 4).getListScore().get(j - 3).setValue(row.getCell(j).getStringCellValue().trim());</span>
+<span class="nc" id="L1548">                            resultList.get(i - 4).getListScore().get(j - 3).setTimes(1);</span>
+<span class="nc" id="L1549">                            resultList.get(i - 4).setUpdater(username);</span>
+                        }
+                    }
+<span class="nc" id="L1552">                } catch (Exception e) {</span>
+<span class="nc" id="L1553">                    e.printStackTrace();</span>
+<span class="nc" id="L1554">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Cập nhật điểm không thành công&quot;, null);</span>
+<span class="nc" id="L1555">                }</span>
+<span class="nc" id="L1556">            } else {</span>
+<span class="nc" id="L1557">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;File không đúng định dạng&quot;, null);</span>
+            }
+<span class="nc" id="L1559">            gradeBookForm.setSubjectsDetails(resultList);</span>
+<span class="nc" id="L1560">            ServiceResult&lt;Boolean&gt; saveResultToDB = save(gradeBookForm, login);</span>
+<span class="nc" id="L1561">            return saveResultToDB;</span>
+<span class="nc" id="L1562">        } catch (Exception e) {</span>
+<span class="nc" id="L1563">            e.printStackTrace();</span>
+<span class="nc" id="L1564">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Cập nhật điểm thất bại, có lỗi xảy ra &quot;, null);</span>
+        }
+
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getListScoreOfEachSubject(String year, Integer semester, String classCode, String studentCode) {
+        try {
+<span class="nc" id="L1572">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;success&quot;, gradebookRepository.getListScoreOfEachSubject(year, semester, classCode, studentCode));</span>
+<span class="nc" id="L1573">        } catch (Exception e) {</span>
+<span class="nc" id="L1574">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;fail&quot;, null);</span>
+        }
+
+    }
+
+
+    public Boolean isExcelFormat(MultipartFile file) {
+<span class="nc" id="L1581">        return file.getContentType().equals(&quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; checkGradeBookToChangeClass(String year, String studentCode) {
+<span class="nc bnc" id="L1586" title="All 2 branches missed.">        if (gradebookRepository.checkExistScoreToChangeClass(year, studentCode)) {</span>
+<span class="nc" id="L1587">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể đổi lớp&quot;, null);</span>
+        } else {
+<span class="nc" id="L1589">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Có thể đổi lớp&quot;, null);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

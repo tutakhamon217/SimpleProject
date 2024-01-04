@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DepartmentServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">DepartmentServiceImpl.java</span></div><h1>DepartmentServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+
+import fpt.capstone.form_data.UpdateDepartmentForm;
+import fpt.capstone.entities.ApParam;
+import fpt.capstone.entities.Departments;
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.entities.Teacher;
+import fpt.capstone.payroll.DepartmentNotFoundException;
+import fpt.capstone.payroll.ValidationException;
+import fpt.capstone.repository.*;
+import fpt.capstone.repository.DepartmentRepository;
+import fpt.capstone.repository.TeacherRepository;
+import fpt.capstone.repository.SubjectDeptRepository;
+import fpt.capstone.vo.DepartmentVo;
+import fpt.capstone.vo.DepartmentVoV1;
+import fpt.capstone.vo.DepartmentWithTypeVo;
+import fpt.capstone.vo.DropDownVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Service
+@Transactional
+<span class="fc" id="L29">public class DepartmentServiceImpl implements DepartmentService {</span>
+
+    @Autowired
+    private DepartmentRepository repository;
+
+
+    @Autowired
+    private ApParamRepository apParamRepository;
+
+    @Autowired
+    private TeacherRepository teacherRepository;
+
+    @Autowired
+    private SubjectDeptRepository subjectDeptRepository;
+
+    @Autowired
+    private ClassRoomRepository classRoomRepository;
+
+    @Override
+    public ServiceResult&lt;List&lt;DepartmentVo&gt;&gt; getDepartmentByParentID(Integer parent_id) {
+<span class="fc" id="L49">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;deprartment by parent id&quot;, repository.getDepartmentsByParentID(parent_id));</span>
+    }
+
+
+    @Override
+    public ServiceResult&lt;List&lt;DepartmentVoV1&gt;&gt; searchDepartmentsByCodeOrName(String code, String name) {
+<span class="fc" id="L55">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Search results&quot;, repository.searchDepartmentsByCodeOrName(code.toUpperCase(), name.toUpperCase()));</span>
+    }
+
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; deleteDepartment(Integer id) {
+        Departments departments;
+        try {
+<span class="fc" id="L63">            departments = repository.findById(id).orElseThrow(() -&gt; new DepartmentNotFoundException(id.toString()));</span>
+<span class="fc" id="L64">        } catch (Exception e) {</span>
+<span class="fc" id="L65">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Mã phòng ban không tồn tại&quot;, true);</span>
+<span class="fc" id="L66">        }</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (repository.getDepartmentsByParentID(id).size() &gt; 0 ) {</span>
+<span class="fc" id="L68">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể xóa phòng ban đang có phòng ban con thuộc&quot;, true);</span>
+        }
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (teacherRepository.hasTeacherInDeptID(id)) {</span>
+<span class="fc" id="L71">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể xóa phòng ban đang có cán bộ nhân viên thuộc&quot;, true);</span>
+        }
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (subjectDeptRepository.hasSubjectDeptInInDeptID(id)) {</span>
+<span class="fc" id="L74">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể xóa phòng ban đang có môn học thuộc thuộc&quot;, true);</span>
+        }
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (classRoomRepository.hasClassroomInDeptID(id)) {</span>
+<span class="fc" id="L77">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể xóa phòng ban đang có lớp học thuộc thuộc&quot;, true);</span>
+        }
+
+<span class="fc" id="L80">        repository.delete(departments);</span>
+<span class="fc" id="L81">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Xóa thành công&quot;, true);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; checkUpdateParentAndType(Integer id) {
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (repository.getDepartmentsByParentID(id).size() &gt; 0 ) {</span>
+<span class="fc" id="L87">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đang có phòng ban con thuộc&quot;, true);</span>
+        }
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (teacherRepository.hasTeacherInDeptID(id)) {</span>
+<span class="fc" id="L90">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đang có cán bộ nhân viên thuộc&quot;, true);</span>
+        }
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (subjectDeptRepository.hasSubjectDeptInInDeptID(id)) {</span>
+<span class="fc" id="L93">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đang có môn học thuộc thuộc&quot;, true);</span>
+        }
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (classRoomRepository.hasClassroomInDeptID(id)) {</span>
+<span class="fc" id="L96">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đang có lớp học thuộc thuộc&quot;, true);</span>
+        }
+<span class="fc" id="L98">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Có thể chỉnh sửa&quot;, true);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; updateDepartment(UpdateDepartmentForm form) {
+
+        Departments departments;
+<span class="fc" id="L105">        Integer id = Integer.parseInt(form.getId());</span>
+        try {
+<span class="fc" id="L107">            departments = repository.findById(id).orElseThrow(() -&gt; new DepartmentNotFoundException(id.toString()));</span>
+<span class="fc" id="L108">        } catch (Exception e) {</span>
+<span class="fc" id="L109">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Mã phòng ban không tồn tại&quot;, true);</span>
+<span class="fc" id="L110">        }</span>
+        
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (repository.getDepartmentsByParentID(id).size() &gt; 0 ) {</span>
+<span class="fc" id="L113">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể thay phòng ban cha hoặc loại đơn vị của phòng ban đang có phòng ban con thuộc&quot;, true);</span>
+        }
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (teacherRepository.hasTeacherInDeptID(id)) {</span>
+<span class="fc" id="L116">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể thay phòng ban cha hoặc loại đơn vị của phòng ban đang có cán bộ nhân viên thuộc&quot;, true);</span>
+        }
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        if (subjectDeptRepository.hasSubjectDeptInInDeptID(id)) {</span>
+<span class="fc" id="L119">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể thay phòng ban cha hoặc loại đơn vị của phòng ban đang có môn học thuộc thuộc&quot;, true);</span>
+        }
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (classRoomRepository.hasClassroomInDeptID(id)) {</span>
+<span class="fc" id="L122">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể thay phòng ban cha hoặc loại đơn vị của phòng ban đang có lớp học thuộc thuộc&quot;, true);</span>
+        }
+
+
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        if (form.getCode() == null) {</span>
+<span class="fc" id="L127">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Mã học sinh rỗng&quot;, true);</span>
+        }
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        if (form.getParentID() == null) {</span>
+<span class="fc" id="L130">            form.setParentID(0);</span>
+        }
+<span class="fc" id="L132">        ApParam checkedType = apParamRepository.findFirstByCode(form.getType()).orElseThrow(() -&gt; new ValidationException(&quot;type&quot;, &quot;Type is not found&quot;));</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (form.getEmployeeID() != null) {</span>
+<span class="fc" id="L134">            Teacher foundTeacher = teacherRepository.findById(form.getEmployeeID()).orElseThrow(() -&gt; new ValidationException(&quot;employee_id&quot;, &quot;Employee not found&quot;));</span>
+        }
+
+<span class="fc" id="L137">        repository.update(form);</span>
+
+<span class="fc" id="L139">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Updated&quot;, true);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; insertDepartment(UpdateDepartmentForm form) {
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (form.getCode() == null) {</span>
+<span class="fc" id="L145">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Mã khoa ban rỗng&quot;, true);</span>
+        }
+
+<span class="fc" id="L148">        Optional&lt;DepartmentVoV1&gt; d = repository.findFirstByCode(form.getCode());</span>
+
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (d.isPresent()) {</span>
+<span class="fc" id="L151">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Mã khoa ban đã tồn tại&quot;, true);</span>
+        }
+
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (form.getParentID() == null) {</span>
+<span class="fc" id="L155">            form.setParentID(0);</span>
+        }
+        try {
+<span class="fc" id="L158">            ApParam checkedType = apParamRepository.findFirstByCode(form.getType()).orElseThrow(() -&gt; new ValidationException(&quot;type&quot;, &quot;Type is not found&quot;));</span>
+<span class="fc" id="L159">        } catch (Exception e){</span>
+<span class="fc" id="L160">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Loại đơn vị không tồn tại&quot;, true);</span>
+<span class="fc" id="L161">        }</span>
+        
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">        if (form.getEmployeeID() != null) {</span>
+<span class="fc" id="L164">            Teacher foundTeacher = teacherRepository.findById(form.getEmployeeID()).orElseThrow(() -&gt; new ValidationException(&quot;employee_id&quot;, &quot;Employee not found&quot;));</span>
+        }
+
+<span class="fc" id="L167">        List&lt;Departments&gt; savedDepartments = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L168">        savedDepartments.add(new Departments(LocalDateTime.now(), &quot;&quot;, LocalDateTime.now(), &quot;&quot;, form.getName(), form.getCode(), form.getParentID(), form.getPosition(), form.getEmployeeID(), form.getDescription(), form.getType()));</span>
+<span class="fc" id="L169">        repository.saveAll(savedDepartments);</span>
+
+<span class="fc" id="L171">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Thêm mới khoa ban thành công&quot;, true);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;DepartmentVoV1&gt;&gt; getAllDepartments() {
+<span class="fc" id="L176">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;All departments&quot;, repository.getAllDepartments());</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;DepartmentWithTypeVo&gt;&gt; getDropDownValuesWithType() {
+<span class="fc" id="L181">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Department Dropdown values&quot;, repository.getDropDownWithTypeValues());</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;DropDownVo&gt;&gt; getDropDownValues() {
+<span class="fc" id="L186">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Department Dropdown values&quot;, repository.getDropDownValues());</span>
+    }
+
+    @Override
+
+    public ServiceResult&lt;List&lt;DropDownVo&gt;&gt; getDropdownForClassRoom() {
+<span class="fc" id="L192">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Dropdown for classroom&quot;, repository.getDropdownForClassRoom());</span>
+
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;DropDownVo&gt;&gt; getAllParentDepartment() {
+<span class="fc" id="L198">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Dropdown for parent department&quot;, repository.getAllParentDepartment());</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;DropDownVo&gt;&gt; getDepartmentByParentId(int parentId) {
+<span class="fc" id="L203">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Dropdown for department get by parentId&quot;, repository.getDepartmentByParentId(parentId));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getDepartmentAndParentDepartment(int id) {
+<span class="fc" id="L208">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+//        try {
+<span class="fc" id="L210">            List&lt;Map&lt;String, Object&gt;&gt; departments = repository.getDepartmentAndParentDepartment(12133);</span>
+<span class="fc" id="L211">            System.out.println(&quot;size&quot; + departments.size());</span>
+<span class="fc" id="L212">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L213">            output.put(&quot;departments&quot;, departments);</span>
+<span class="fc" id="L214">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="fc" id="L215">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="fc" id="L216">            serviceResult.setData(output);</span>
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            serviceResult.setMessage(&quot;fail&quot;);
+//            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+<span class="fc" id="L222">        return serviceResult;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

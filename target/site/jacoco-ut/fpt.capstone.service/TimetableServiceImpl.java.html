@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TimetableServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">TimetableServiceImpl.java</span></div><h1>TimetableServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.entities.ClassRoom;
+import fpt.capstone.entities.GradeLevel;
+import fpt.capstone.entities.ScheduleGradeClass;
+import fpt.capstone.entities.ScheduleSubjectDetails;
+import fpt.capstone.entities.ScheduleTimetable;
+import fpt.capstone.entities.SchoolYear;
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.entities.Subjects;
+import fpt.capstone.entities.Teacher;
+import fpt.capstone.entities.WeekDetails;
+import fpt.capstone.form_data.TimetableForm;
+import fpt.capstone.helper.TimetableExcelHelper;
+import fpt.capstone.payroll.SubjectNotFoundException;
+import fpt.capstone.payroll.ValidationException;
+import fpt.capstone.repository.*;
+import fpt.capstone.utility.TimetableUtility;
+import fpt.capstone.vo.*;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.persistence.EntityNotFoundException;
+import javax.validation.constraints.Null;
+
+@Service
+<span class="fc" id="L43">public class TimetableServiceImpl implements TimetableService {</span>
+
+    @Autowired
+    private ScheduleTimetableRepository scheduleTimetableRepository;
+
+    @Autowired
+    private ScheduleGradeClassRepository scheduleGradeClassRepository;
+
+    @Autowired
+    private WeekDetailsRepository weekDetailsRepository;
+
+    @Autowired
+    private ScheduleSubjectDetailsRepository scheduleSubjectDetailsRepository;
+
+    @Autowired
+    private TeachingAssignmentRepository teachingAssignmentRepository;
+
+    @Autowired
+    private SubjectsRepository subjectsRepository;
+
+    @Autowired
+    private GradeLevelRepositpry gradeLevelRepositpry;
+
+    @Autowired
+    private ClassRoomRepository classroomRespository;
+
+    @Autowired
+    private SubjectClassRepository subjectClassRepository;
+
+    @Autowired
+    private SchoolYearRespository schoolYearRepository;
+
+    @Override
+    public ServiceResult&lt;List&lt;TimeTableVoV2&gt;&gt; getScheduleTimetableByYearAndSemester(String year, String semester,
+            String gradeLevel, String className, LocalDate applyDate) {
+
+<span class="nc" id="L79">        Optional&lt;String&gt; code = scheduleGradeClassRepository.getLatestScheduleGradeClassCode(applyDate, gradeLevel,</span>
+                className, semester);
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (!code.isPresent()) {</span>
+<span class="nc" id="L82">            return new ServiceResult&lt;List&lt;TimeTableVoV2&gt;&gt;(HttpStatus.OK, &quot;Không tìm thấy thời khóa biểu&quot;,</span>
+<span class="nc" id="L83">                    TimetableUtility.generateEmptyTimetable());</span>
+        }
+<span class="nc" id="L85">        List&lt;TimeTableVoV2&gt; values = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L86">        List&lt;Map&lt;String, Object&gt;&gt; results = teachingAssignmentRepository.getLatestTimetable(code.get());</span>
+
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        for (Map&lt;String, Object&gt; result : results) {</span>
+<span class="nc" id="L89">            java.sql.Date date = (java.sql.Date) (result.get(&quot;applyDate&quot;));</span>
+<span class="nc" id="L90">            String weekDay = (String) (result.get(&quot;weekDay&quot;));</span>
+<span class="nc" id="L91">            String lession = (String) (result.get(&quot;lesson&quot;));</span>
+<span class="nc" id="L92">            String type = (String) (result.get(&quot;type&quot;));</span>
+<span class="nc" id="L93">            Integer subjectId = (Integer) (result.get(&quot;subjectID&quot;));</span>
+<span class="nc" id="L94">            String subjectName = (String) (result.get(&quot;subjectName&quot;));</span>
+<span class="nc" id="L95">            String subjectCode = (String) (result.get(&quot;subjectCode&quot;));</span>
+<span class="nc" id="L96">            Integer teacherID = (Integer) (result.get(&quot;teacherID&quot;));</span>
+<span class="nc" id="L97">            String teacherName = (String) (result.get(&quot;teacherName&quot;));</span>
+<span class="nc" id="L98">            String teacherCode = (String) (result.get(&quot;teacherCode&quot;));</span>
+
+<span class="nc" id="L100">            values.add(new TimeTableVoV2(date.toLocalDate(), weekDay, lession, type, subjectId, subjectName,</span>
+                    subjectCode, teacherID, teacherName, teacherCode));
+<span class="nc" id="L102">        }</span>
+
+<span class="nc" id="L104">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Schedule timetable&quot;, values);// teachingAssignmentRepository.getLatestTimetable(code.get()));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;TimeTableDropDown&gt;&gt; getTimeTableDropdown(String year, String semester, String className) {
+<span class="nc" id="L109">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Timetable dropdown&quot;,</span>
+<span class="nc" id="L110">                subjectClassRepository.getTimeTableDropdown(year, semester, className));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; updateTimeTable(TimetableForm form) {
+        // Validate
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        for (UploadTimetableVO element : form.getTimetable()) {</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">            if (element.getSubject() == null) {</span>
+<span class="nc" id="L118">                continue;</span>
+            }
+<span class="nc" id="L120">            Subjects assignedSubject = subjectsRepository.findById(element.getSubject())</span>
+<span class="nc" id="L121">                    .orElseThrow(() -&gt; new SubjectNotFoundException(element.getSubject().toString()));</span>
+
+<span class="nc bnc" id="L123" title="All 2 branches missed.">            if (!subjectClassRepository.isValidForTimetable(form.getYear(), form.getSemester(), form.getClassName(),</span>
+<span class="nc" id="L124">                    assignedSubject.getCode())) {</span>
+<span class="nc" id="L125">                throw new ValidationException(&quot;SubjectCode&quot;, &quot;Không thể thêm môn học có code là &quot;</span>
+<span class="nc" id="L126">                        + assignedSubject.getCode() + &quot; cho lớp &quot; + form.getClassName());</span>
+            }
+<span class="nc" id="L128">        }</span>
+
+<span class="nc" id="L130">        LocalDate applyDate = LocalDate.parse(form.getApplyDate());</span>
+
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (applyDate.getDayOfWeek() != DayOfWeek.MONDAY) {</span>
+<span class="nc" id="L133">            throw new ValidationException(&quot;dayOfWeek&quot;, &quot;Ngày áp dụng phải là thứ Hai&quot;);</span>
+        }
+
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        if (!scheduleTimetableRepository.isExisted(form.getYear(), form.getSemester())) {</span>
+<span class="nc" id="L137">            ScheduleTimetable st = new ScheduleTimetable(</span>
+<span class="nc" id="L138">                    1000,</span>
+<span class="nc" id="L139">                    &quot;timetable_&quot; + LocalDateTime.now().format(DateTimeFormatter.ofPattern(&quot;yyyyMd_Hms&quot;)),</span>
+<span class="nc" id="L140">                    form.getSemester(),</span>
+<span class="nc" id="L141">                    LocalDate.now(),</span>
+<span class="nc" id="L142">                    form.getYear(),</span>
+<span class="nc" id="L143">                    LocalDate.now(),</span>
+                    &quot;&quot;,
+                    null);
+
+<span class="nc" id="L147">            scheduleTimetableRepository.save(st);</span>
+        }
+
+<span class="nc" id="L150">        String schduleTimetableCode = scheduleTimetableRepository.getCodeByYearAndSemester(form.getYear(),</span>
+<span class="nc" id="L151">                form.getSemester());</span>
+
+<span class="nc" id="L153">        GradeLevel gl = null;</span>
+        try {
+<span class="nc" id="L155">            gl = gradeLevelRepositpry.getById(Integer.parseInt(form.getGradeLevel()));</span>
+<span class="nc" id="L156">        } catch (Exception ex) {</span>
+<span class="nc" id="L157">            throw new ValidationException(&quot;gradeLevel&quot;, &quot;Khối không tồn tại&quot;);</span>
+<span class="nc" id="L158">        }</span>
+
+<span class="nc bnc" id="L160" title="All 2 branches missed.">        if (!scheduleGradeClassRepository.isExist(schduleTimetableCode, gl.getCode(), form.getClassName(), applyDate)) {</span>
+<span class="nc" id="L161">            ScheduleGradeClass sgc = new ScheduleGradeClass(1000,</span>
+<span class="nc" id="L162">                    &quot;code_grade_class_&quot; + LocalDateTime.now().format(DateTimeFormatter.ofPattern(&quot;yyyyMd_Hms&quot;)),</span>
+<span class="nc" id="L163">                    gl.getCode(),</span>
+                    schduleTimetableCode,
+                    null,
+                    applyDate,
+<span class="nc" id="L167">                    form.getClassName(),</span>
+<span class="nc" id="L168">                    LocalDate.now(),</span>
+                    &quot;&quot;);
+
+<span class="nc" id="L171">            scheduleGradeClassRepository.save(sgc);</span>
+        }
+
+<span class="nc" id="L174">        String scheduelGradeClassCode = scheduleGradeClassRepository.getCode(schduleTimetableCode, gl.getCode(),</span>
+<span class="nc" id="L175">                form.getClassName(), applyDate);</span>
+
+        // Generate null timetable
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        for (int weekDay = 2; weekDay &lt;= 7; ++weekDay) {</span>
+<span class="nc" id="L179">            String weekDayString = &quot;t&quot; + String.valueOf(weekDay);</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            for (int period = 0; period &lt;= 1; ++period) {</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">                String type = period == 0 ? &quot;morning&quot; : &quot;afternoon&quot;;</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">                if (!weekDetailsRepository.isExist(scheduelGradeClassCode, String.valueOf(period), weekDayString)) {</span>
+<span class="nc" id="L183">                    WeekDetails wd = new WeekDetails(1000,</span>
+                            &quot;week_detail_&quot; + type
+<span class="nc" id="L185">                                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern(&quot;yyyyMd_Hms&quot;)),</span>
+<span class="nc" id="L186">                            String.valueOf(period),</span>
+                            weekDayString,
+                            scheduelGradeClassCode);
+
+<span class="nc" id="L190">                    weekDetailsRepository.save(wd);</span>
+                }
+
+<span class="nc" id="L193">                String weekdetailCode = weekDetailsRepository.getCode(scheduelGradeClassCode, String.valueOf(period),</span>
+                        weekDayString);
+
+<span class="nc bnc" id="L196" title="All 2 branches missed.">                for (int lession = 1; lession &lt;= 5; ++lession) {</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">                    if (!scheduleSubjectDetailsRepository.isExist(weekdetailCode, String.valueOf(lession))) {</span>
+<span class="nc" id="L198">                        ScheduleSubjectDetails ssd = new ScheduleSubjectDetails(</span>
+                                1000,
+                                &quot;subject_details_&quot;
+                                        + type
+<span class="nc" id="L202">                                        + LocalDateTime.now().format(DateTimeFormatter.ofPattern(&quot;yyyyMd_Hms&quot;)),</span>
+                                &quot;&quot;,
+                                weekdetailCode,
+<span class="nc" id="L205">                                String.valueOf(lession));</span>
+
+<span class="nc" id="L207">                        scheduleSubjectDetailsRepository.save(ssd);</span>
+<span class="nc" id="L208">                    } else {</span>
+<span class="nc" id="L209">                        ScheduleSubjectDetails entity = scheduleSubjectDetailsRepository</span>
+<span class="nc" id="L210">                                .getEntity(weekdetailCode, String.valueOf(lession)).orElse(null);</span>
+
+<span class="nc" id="L212">                        entity.setSubjectCode(&quot;&quot;);</span>
+
+<span class="nc" id="L214">                        scheduleSubjectDetailsRepository.save(entity);</span>
+                    }
+                }
+            }
+        }
+
+        // Update timetable
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        for (UploadTimetableVO timetable : form.getTimetable()) {</span>
+
+<span class="nc" id="L223">            String weekdetailCode = weekDetailsRepository.getCode(scheduelGradeClassCode,</span>
+<span class="nc" id="L224">                    timetable.getType(), timetable.getWeekDay());</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">            String subjectCode = timetable.getSubject() == null ? &quot;&quot;</span>
+<span class="nc" id="L226">                    : subjectsRepository.findById(timetable.getSubject()).orElse(null).getCode();</span>
+
+<span class="nc" id="L228">            ScheduleSubjectDetails entity = scheduleSubjectDetailsRepository</span>
+<span class="nc" id="L229">                    .getEntity(weekdetailCode, timetable.getLesson()).orElse(null);</span>
+
+<span class="nc" id="L231">            entity.setSubjectCode(subjectCode);</span>
+
+<span class="nc" id="L233">            scheduleSubjectDetailsRepository.save(entity);</span>
+<span class="nc" id="L234">        }</span>
+
+<span class="nc" id="L236">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;updated&quot;, true);</span>
+    }
+
+    @Override
+    public ByteArrayInputStream exportToExcel(String year, String semester, String gradeLevel, String className,
+            LocalDate applyDate) {
+<span class="nc" id="L242">        ByteArrayInputStream in = TimetableExcelHelper.export(year, semester, className,</span>
+<span class="nc" id="L243">                applyDate.format(DateTimeFormatter.ISO_DATE),</span>
+<span class="nc" id="L244">                this.getScheduleTimetableByYearAndSemester(year, semester, gradeLevel, className, applyDate).getData());</span>
+<span class="nc" id="L245">        return in;</span>
+    }
+
+    public ByteArrayInputStream downloadTemplateFile(String years, String semester, String gradeLevel) {
+<span class="nc" id="L249">        return TimetableExcelHelper.downloadTemplateFile(years, semester, gradeLevel,</span>
+<span class="nc" id="L250">                classroomRespository.getAllClassRoomByYearsAndGradeAllDept(years, Integer.parseInt(gradeLevel)));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; upload(String year, String semester, String gradeLevel,
+            String applyDate, MultipartFile file) {
+<span class="nc bnc" id="L256" title="All 2 branches missed.">        if (TimetableExcelHelper.isExcelFormat(file)) {</span>
+            try {
+<span class="nc" id="L258">                HashMap&lt;String, TimetableForm&gt; timetableExcels = TimetableExcelHelper.parseFromExcel(</span>
+<span class="nc" id="L259">                        file.getInputStream(), year, semester, Integer.parseInt(gradeLevel), applyDate,</span>
+                        classroomRespository, subjectClassRepository, subjectsRepository);
+
+<span class="nc bnc" id="L262" title="All 2 branches missed.">                for (Map.Entry&lt;String, TimetableForm&gt; entry : timetableExcels.entrySet()) {</span>
+<span class="nc" id="L263">                    this.updateTimeTable(entry.getValue());</span>
+<span class="nc" id="L264">                }</span>
+
+<span class="nc" id="L266">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;updated&quot;, true);</span>
+<span class="nc" id="L267">            } catch (IOException e) {</span>
+<span class="nc" id="L268">                throw new ValidationException(&quot;file&quot;, &quot;Không thể đọc file&quot; );</span>
+            }
+        }
+
+<span class="nc" id="L272">        return new ServiceResult&lt;Boolean&gt;(HttpStatus.BAD_REQUEST, &quot;Sai định dạng file&quot;, false);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;List&lt;TeacherTimeTableVo&gt;&gt;&gt; getTimetableForTeacher(String applyDate, String teacherCode) {
+<span class="nc" id="L277">        List&lt;List&lt;TeacherTimeTableVo&gt;&gt; timetable = new ArrayList();</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">        for (int dayOfWeek = 2; dayOfWeek &lt;= 7; ++dayOfWeek) {</span>
+<span class="nc" id="L279">            timetable.add(new ArrayList&lt;&gt;());</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">            for (int lession = 0; lession &lt; 10; ++lession) {</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">                timetable.get(dayOfWeek - 2).add(new TeacherTimeTableVo(&quot;t&quot; + String.valueOf(dayOfWeek),</span>
+<span class="nc" id="L282">                        lession &lt; 5 ? &quot;0&quot; : &quot;1&quot;, String.valueOf(lession % 5 + 1), null, null, null, null));</span>
+            }
+        }
+
+<span class="nc" id="L286">        SchoolYear schoolYear = schoolYearRepository</span>
+<span class="nc" id="L287">                .getSemesterOf(LocalDate.parse(applyDate, DateTimeFormatter.ISO_DATE).atStartOfDay()).orElse(null);</span>
+
+<span class="nc bnc" id="L289" title="All 2 branches missed.">        if (schoolYear == null) {</span>
+<span class="nc" id="L290">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Success&quot;, timetable);</span>
+        }
+
+<span class="nc" id="L293">        List&lt;Map&lt;String, Object&gt;&gt; assignedClasses = teachingAssignmentRepository</span>
+<span class="nc" id="L294">                .getTeachingClassCodes(schoolYear.getYears(), schoolYear.getSemester(), teacherCode);</span>
+
+<span class="nc bnc" id="L296" title="All 2 branches missed.">        for (Map&lt;String, Object&gt; assignedClass : assignedClasses) {</span>
+            // System.out.printf(&quot;%s %s\n&quot;, assignedClass.get(&quot;class_code&quot;),
+            // assignedClass.get(&quot;grade_level&quot;));
+<span class="nc" id="L299">            ClassRoom classroom = classroomRespository.getClassRoomByCode(assignedClass.get(&quot;class_code&quot;).toString())</span>
+<span class="nc" id="L300">                    .orElse(null);</span>
+
+<span class="nc" id="L302">            Optional&lt;String&gt; code = scheduleGradeClassRepository.getLatestScheduleGradeClassCode(</span>
+<span class="nc" id="L303">                    LocalDate.parse(applyDate, DateTimeFormatter.ISO_DATE), assignedClass.get(&quot;grade_level&quot;).toString(),</span>
+<span class="nc" id="L304">                    assignedClass.get(&quot;class_code&quot;).toString(), schoolYear.getSemester());</span>
+
+<span class="nc bnc" id="L306" title="All 2 branches missed.">            if (!code.isPresent())</span>
+<span class="nc" id="L307">                continue;</span>
+
+<span class="nc" id="L309">            List&lt;Map&lt;String, Object&gt;&gt; results = teachingAssignmentRepository.getLatestTimetable(code.get());</span>
+
+<span class="nc bnc" id="L311" title="All 2 branches missed.">            for (Map&lt;String, Object&gt; result : results) {</span>
+<span class="nc" id="L312">                java.sql.Date date = (java.sql.Date) (result.get(&quot;applyDate&quot;));</span>
+<span class="nc" id="L313">                String weekDay = (String) (result.get(&quot;weekDay&quot;));</span>
+<span class="nc" id="L314">                String lession = (String) (result.get(&quot;lesson&quot;));</span>
+<span class="nc" id="L315">                String type = (String) (result.get(&quot;type&quot;));</span>
+<span class="nc" id="L316">                Integer subjectId = (Integer) (result.get(&quot;subjectID&quot;));</span>
+<span class="nc" id="L317">                String subjectName = (String) (result.get(&quot;subjectName&quot;));</span>
+<span class="nc" id="L318">                String subjectCode = (String) (result.get(&quot;subjectCode&quot;));</span>
+<span class="nc" id="L319">                Integer teacherID = (Integer) (result.get(&quot;teacherID&quot;));</span>
+<span class="nc" id="L320">                String teacherName = (String) (result.get(&quot;teacherName&quot;));</span>
+<span class="nc" id="L321">                String teacherCodeTimtable = (String) (result.get(&quot;teacherCode&quot;));</span>
+
+<span class="nc bnc" id="L323" title="All 2 branches missed.">                if (teacherCodeTimtable == null) {</span>
+<span class="nc" id="L324">                    continue;</span>
+                }
+
+<span class="nc bnc" id="L327" title="All 2 branches missed.">                if (teacherCodeTimtable.equals(teacherCode)) {</span>
+                    // System.out.printf(&quot;%s %s %s %s %s\n&quot;, weekDay, type, lession, subjectCode,
+                    // teacherCodeTimtable);
+<span class="nc" id="L330">                    Integer weekDayIdx = Integer.parseInt(weekDay.substring(1)) - 2;</span>
+<span class="nc" id="L331">                    Integer lessionIdx = Integer.parseInt(lession) - 1 + Integer.parseInt(type) * 5;</span>
+                    // System.out.printf(&quot;%s %s %s %s %s %s\n&quot;, weekDayIdx, lessionIdx, subjectCode,
+                    // teacherCodeTimtable, classroom.getCode(), classroom.getName());
+<span class="nc" id="L334">                    timetable.get(weekDayIdx).get(lessionIdx).setSubjectCode(subjectCode);</span>
+<span class="nc" id="L335">                    timetable.get(weekDayIdx).get(lessionIdx).setSubjectName(subjectName);</span>
+<span class="nc" id="L336">                    timetable.get(weekDayIdx).get(lessionIdx).setClassCode(classroom.getCode());</span>
+<span class="nc" id="L337">                    timetable.get(weekDayIdx).get(lessionIdx).setClassName(classroom.getName());</span>
+                }
+
+<span class="nc" id="L340">            }</span>
+            // System.out.print(code.get());
+
+<span class="nc" id="L343">        }</span>
+
+<span class="nc" id="L345">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Success&quot;, timetable);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

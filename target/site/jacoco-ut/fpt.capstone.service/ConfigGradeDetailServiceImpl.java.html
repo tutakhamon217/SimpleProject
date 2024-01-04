@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigGradeDetailServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">ConfigGradeDetailServiceImpl.java</span></div><h1>ConfigGradeDetailServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.entities.ConfigGradeDetail;
+import fpt.capstone.entities.ConfigScoreDetail;
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.form_data.ConfigGradeDetailForm;
+import fpt.capstone.repository.ConfigGradeDetailRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.crossstore.ChangeSetPersister;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@Transactional
+<span class="fc" id="L22">public class ConfigGradeDetailServiceImpl implements ConfigGradeDetailService {</span>
+
+    @Autowired
+    private ConfigGradeDetailRepository configGradeDetailRepository;
+
+    @Override
+    public ServiceResult&lt;List&lt;ConfigGradeDetailForm&gt;&gt; saveAll(List&lt;ConfigGradeDetailForm&gt; list) {
+
+        try{
+<span class="fc bfc" id="L31" title="All 2 branches covered.">            if(list.size() &gt; 0){</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">                for (int i = 0; i &lt; list.size(); i++){</span>
+<span class="fc bfc" id="L33" title="All 6 branches covered.">                    if(list.get(i).getName() == null || list.get(i).getName().trim().equals(&quot;&quot;) || list.get(i).getType_choose() == null){</span>
+<span class="fc" id="L34">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Hãy nhập đầy đủ thông tin&quot;, null);</span>
+                    }
+<span class="pc bpc" id="L36" title="1 of 4 branches missed.">                    if(list.get(i).getType_choose() &lt; 0 || list.get(i).getType_choose() &gt; 1){</span>
+<span class="fc" id="L37">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Kiểu chọn phải có giá trị 0 hoặc 1&quot;, null);</span>
+                    }
+<span class="pc bpc" id="L39" title="1 of 6 branches missed.">                    if(list.get(i).getType_choose() == 0 &amp;&amp; list.get(i).getSelected_value() != null &amp;&amp; list.get(i).getSelected_value().length() &gt; 0){</span>
+<span class="fc" id="L40">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Chưa chọn kiểu chọn nhưng có giá trị lựa chọn&quot;, null);</span>
+                    }
+<span class="fc bfc" id="L42" title="All 6 branches covered.">                    if(list.get(i).getType_choose() == 1 &amp;&amp; (list.get(i).getSelected_value() == null || list.get(i).getSelected_value().trim().equals(&quot;&quot;))){</span>
+<span class="fc" id="L43">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đã chọn kiểu chọn nhưng chưa có giá trị lựa chọn&quot;, null);</span>
+                    }
+<span class="fc bfc" id="L45" title="All 4 branches covered.">                    if(list.get(i).getParent_code() == null || list.get(i).getParent_code().trim().equals(&quot;&quot;)){</span>
+<span class="fc" id="L46">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Danh sách cập nhật chứa thành phần chưa thuộc đầu điểm cho môn học nào&quot;, null);</span>
+                    }
+                }
+
+<span class="fc" id="L50">                List&lt;ConfigGradeDetail&gt; configGradeDetails = configGradeDetailRepository.getAllConfGradeDetailByParentCode(list.get(0).getParent_code());</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">                for (int i = 0; i &lt; configGradeDetails.size(); i++){</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">                    if(configGradeDetailRepository.isScored(configGradeDetails.get(i).getCode()).equals(1)){</span>
+<span class="fc" id="L53">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm này đã được nhập điểm&quot;, null);</span>
+                    }
+                }
+
+<span class="fc" id="L57">                List&lt;ConfigGradeDetail&gt; listDetails = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L59">                Calendar calendar = Calendar.getInstance();</span>
+<span class="fc" id="L60">                String timeCurrent = calendar.get(Calendar.YEAR)</span>
+<span class="fc" id="L61">                        + (calendar.get(Calendar.MONTH) + 1)</span>
+<span class="fc" id="L62">                        + calendar.get(Calendar.DATE)</span>
+                        + &quot;_&quot;
+<span class="fc" id="L64">                        + calendar.get(Calendar.HOUR)</span>
+<span class="fc" id="L65">                        + calendar.get(Calendar.MINUTE)</span>
+<span class="fc" id="L66">                        + calendar.get(Calendar.MILLISECOND);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">                for(ConfigGradeDetailForm cs : list){</span>
+<span class="fc" id="L68">                    ConfigGradeDetail csd = new ConfigGradeDetail(</span>
+<span class="fc" id="L69">                            cs.getName(),</span>
+<span class="fc" id="L70">                            cs.getType_choose(),</span>
+<span class="fc" id="L71">                            cs.getSelected_value(),</span>
+<span class="fc" id="L72">                            &quot;conf_grading_details&quot; + timeCurrent + &quot;_&quot; + UUID.randomUUID(),</span>
+<span class="fc" id="L73">                            cs.getParent_code()</span>
+                    );
+<span class="fc" id="L75">                    listDetails.add(csd);</span>
+<span class="fc" id="L76">                }</span>
+<span class="fc" id="L77">                listDetails = configGradeDetailRepository.saveAll(listDetails);</span>
+<span class="fc" id="L78">                ServiceResult sr = new ServiceResult();</span>
+<span class="fc" id="L79">                sr.setMessage(&quot;success&quot;);</span>
+<span class="fc" id="L80">                sr.setStatus(HttpStatus.OK);</span>
+<span class="fc" id="L81">                sr.setData(listDetails);</span>
+<span class="fc" id="L82">                return sr;</span>
+            }else{
+<span class="fc" id="L84">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;empty&quot;, null);</span>
+            }
+<span class="fc" id="L86">        }catch (Exception e){</span>
+<span class="fc" id="L87">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thêm mới thất bại&quot;, null);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; deleteAll(Integer[] list) {
+        try {
+<span class="fc bfc" id="L94" title="All 2 branches covered.">                for (int i = 0; i &lt; list.length; i++){</span>
+<span class="fc" id="L95">                    ConfigGradeDetail csd = configGradeDetailRepository.findById(list[i]).get();</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">                    if(configGradeDetailRepository.isScored(csd.getCode()).equals(1)){</span>
+<span class="fc" id="L97">                        return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm này đã được nhập điểm&quot;, null);</span>
+                    }
+                }
+<span class="fc bfc" id="L100" title="All 2 branches covered.">            if(list.length &gt; 0){</span>
+<span class="fc" id="L101">                List&lt;ConfigGradeDetail&gt; listCSD = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">                for (int i = 0; i &lt; list.length; i++) {</span>
+<span class="fc" id="L103">                    ConfigGradeDetail csd = configGradeDetailRepository.findById(list[i]).get();</span>
+<span class="fc" id="L104">                    listCSD.add(csd);</span>
+                }
+<span class="fc" id="L106">                configGradeDetailRepository.deleteAll(listCSD);</span>
+<span class="fc" id="L107">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Xóa thành công&quot;, true);</span>
+            }else{
+<span class="fc" id="L109">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;empty&quot;, true);</span>
+            }
+<span class="fc" id="L111">        } catch (Exception e) {</span>
+<span class="fc" id="L112">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Xoá thất bại&quot;, false);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; updateChange(List&lt;ConfigGradeDetailForm&gt; list) {
+        try {
+<span class="fc bfc" id="L119" title="All 2 branches covered.">            for (int i = 0; i &lt; list.size(); i++){</span>
+<span class="fc bfc" id="L120" title="All 6 branches covered.">                if(list.get(i).getName() == null || list.get(i).getName().trim().equals(&quot;&quot;) || list.get(i).getType_choose() == null){</span>
+<span class="fc" id="L121">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Hãy nhập đầy đủ thông tin&quot;, null);</span>
+                }
+<span class="fc bfc" id="L123" title="All 2 branches covered.">                if(list.get(i).getId() == null){</span>
+<span class="fc" id="L124">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm '&quot;+ list.get(i).getName() +&quot;' chưa từng tồn tại&quot;, null);</span>
+                }
+<span class="pc bpc" id="L126" title="1 of 4 branches missed.">                if(list.get(i).getType_choose() &lt; 0 || list.get(i).getType_choose() &gt; 1){</span>
+<span class="fc" id="L127">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Kiểu chọn phải có giá trị 0 hoặc 1&quot;, null);</span>
+                }
+<span class="fc bfc" id="L129" title="All 6 branches covered.">                if(list.get(i).getType_choose() == 0 &amp;&amp; list.get(i).getSelected_value() != null &amp;&amp; list.get(i).getSelected_value().length() &gt; 0){</span>
+<span class="fc" id="L130">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Chưa chọn kiểu chọn nhưng có giá trị lựa chọn&quot;, null);</span>
+                }
+<span class="fc bfc" id="L132" title="All 6 branches covered.">                if(list.get(i).getType_choose() == 1 &amp;&amp; (list.get(i).getSelected_value() == null || list.get(i).getSelected_value().trim().equals(&quot;&quot;))){</span>
+<span class="fc" id="L133">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đã chọn kiểu chọn nhưng chưa có giá trị lựa chọn&quot;, null);</span>
+                }
+<span class="fc bfc" id="L135" title="All 4 branches covered.">                if(list.get(i).getCode() == null || list.get(i).getCode().trim().equals(&quot;&quot;)){</span>
+<span class="fc" id="L136">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm '&quot;+ list.get(i).getName() +&quot;' chưa từng tồn tại&quot;, null);</span>
+                }
+<span class="fc bfc" id="L138" title="All 4 branches covered.">                if(list.get(i).getParent_code() == null || list.get(i).getParent_code().trim().equals(&quot;&quot;)){</span>
+<span class="fc" id="L139">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Danh sách cập nhật chứa thành phần chưa thuộc đầu điểm cho môn học nào&quot;, null);</span>
+                }
+            }
+
+<span class="fc bfc" id="L143" title="All 2 branches covered.">            for (int i = 0; i &lt; list.size(); i++){</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">                if(configGradeDetailRepository.isScored(list.get(i).getCode()).equals(1)){</span>
+<span class="fc" id="L145">                    return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Đầu điểm này đã được nhập điểm&quot;, null);</span>
+                }
+            }
+<span class="fc bfc" id="L148" title="All 2 branches covered.">            if(list.size() &gt; 0){</span>
+<span class="fc" id="L149">                List&lt;ConfigGradeDetail&gt; listCSD = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">                for (int i = 0; i &lt; list.size(); i++) {</span>
+<span class="fc" id="L151">                    ConfigGradeDetail csd = configGradeDetailRepository.findById(list.get(i).getId()).get();</span>
+<span class="fc" id="L152">                    csd.setName(list.get(i).getName());</span>
+
+<span class="fc" id="L154">                    csd.setTypeChoose(list.get(i).getType_choose());</span>
+<span class="fc" id="L155">                    csd.setSelectedValue(list.get(i).getSelected_value());</span>
+<span class="fc" id="L156">                    csd.setCode(list.get(i).getCode());</span>
+<span class="fc" id="L157">                    csd.setParentCode(list.get(i).getParent_code());</span>
+
+<span class="fc" id="L159">                    listCSD.add(csd);</span>
+                }
+<span class="fc" id="L161">                configGradeDetailRepository.saveAll(listCSD);</span>
+<span class="fc" id="L162">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật thành công&quot;, true);</span>
+            }else{
+<span class="fc" id="L164">                return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;empty&quot;, true);</span>
+            }
+<span class="fc" id="L166">        } catch (Exception e) {</span>
+<span class="fc" id="L167">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Cập nhật thất bại&quot;, false);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

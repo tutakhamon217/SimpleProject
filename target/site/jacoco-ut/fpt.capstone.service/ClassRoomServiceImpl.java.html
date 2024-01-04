@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClassRoomServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">ClassRoomServiceImpl.java</span></div><h1>ClassRoomServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.form_data.ClassRoomForm;
+import fpt.capstone.entities.ClassRoom;
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.payroll.ClassRoomNotFoundException;
+import fpt.capstone.payroll.ValidationException;
+import fpt.capstone.repository.*;
+import fpt.capstone.utility.Range;
+import fpt.capstone.vo.ClassRoomVo;
+import fpt.capstone.vo.DropDownVo;
+import fpt.capstone.vo.DropDownKeyValueVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@Transactional
+<span class="fc" id="L28">public class ClassRoomServiceImpl implements ClassRoomService {</span>
+
+    @Autowired
+    private ClassRoomRepository repository;
+
+    @Autowired
+    private GradeLevelRepositpry gradeLevelRepositpry;
+
+    @Autowired
+    private DepartmentRepository departmentRepository;
+
+    @Autowired
+    private SubjectsRepository subjectsRepository;
+
+    @Autowired
+    private TeacherRepository teacherRepository;
+
+    @Override
+    public ServiceResult&lt;List&lt;String&gt;&gt; getDropDownSchoolYears() {
+<span class="nc" id="L47">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Dropdown&quot;, repository.getDropDownSchoolYears());</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Page&lt;ClassRoomVo&gt;&gt; getAllClassroomsByYears(String years, Pageable pageable) {
+<span class="nc" id="L52">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;All classroom&quot;, repository.getAllClassRoomByYears(years, pageable));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;DropDownVo&gt;&gt; getAllClassroomsByYearsAndGrade(Integer gradeLevel, String years, Integer deptID) {
+<span class="nc" id="L57">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;All classroom&quot;, repository.getAllClassRoomByYearsAndGrade(years, gradeLevel, deptID));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;DropDownVo&gt;&gt; getAllClassroomsByYearsAndGradeAllDept(Integer gradeLevel, String years) {
+<span class="nc" id="L62">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;All classroom&quot;, repository.getAllClassRoomByYearsAndGradeAllDept(years, gradeLevel));</span>
+    }
+    
+
+    @Override
+    public ServiceResult&lt;Page&lt;ClassRoomVo&gt;&gt; searchClassRooms(String years, String code, String name, Integer gradeLevel, Integer deptID, Pageable pageable) {
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        code = (code == null) ? &quot;&quot; : code;</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        name = (name == null) ? &quot;&quot; : name;</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        Range&lt;Integer&gt; gradeLevelRange = (gradeLevel == null) ? new Range&lt;&gt;(-1, Integer.MAX_VALUE) : new Range&lt;&gt;(gradeLevel, gradeLevel);</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        Range&lt;Integer&gt; deptIDRange = (deptID == null) ? new Range&lt;&gt;(-1, Integer.MAX_VALUE) : new Range&lt;&gt;(deptID, deptID);</span>
+
+<span class="nc" id="L73">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Search&quot;, repository.findClassRoomByCodeAndNameAndGradeLevelRangeAndDepartmentRange(years, code, name, gradeLevelRange, deptIDRange, pageable));</span>
+    }
+
+    @Override
+    public ServiceResult&lt;ClassRoomVo&gt; getByID(Integer id) {
+<span class="nc" id="L78">        ClassRoomVo classRoomVo = repository.getClassRoomById(id).orElseThrow(() -&gt; new ClassRoomNotFoundException(id));</span>
+<span class="nc" id="L79">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;classroom&quot;, classRoomVo);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; deleteClassRoom(String classCode) {
+ 
+        try {
+<span class="nc bnc" id="L86" title="All 2 branches missed.">            if (repository.checkClassHasStudent(classCode).size() &gt; 0 ) {</span>
+<span class="nc" id="L87">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Không thể xóa lớp học có học sinh&quot;, true);</span>
+            }
+<span class="nc" id="L89">            repository.deleteClassRoomByCode(classCode);</span>
+<span class="nc" id="L90">        } catch (Exception e) {</span>
+<span class="nc" id="L91">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Lỗi khi xóa lớp&quot;, true);</span>
+<span class="nc" id="L92">        }</span>
+        
+        // repository.delete(classRoom);
+<span class="nc" id="L95">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Xóa lớp học thành công&quot;, true);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; updateClassRoom(ClassRoomForm form) {
+        try {
+<span class="nc" id="L101">            ClassRoom classRoom = repository.getClassRoomByCode(form.getCode()).orElseThrow(() -&gt; new ClassRoomNotFoundException(null));</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">            if (!gradeLevelRepositpry.isExist(form.getGradeLevel())) {</span>
+<span class="nc" id="L103">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Khối không tồn tại&quot;, true);</span>
+            }
+
+<span class="nc bnc" id="L106" title="All 2 branches missed.">            if (!departmentRepository.isExistForClassRoom(form.getDeptID())) {</span>
+<span class="nc" id="L107">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Khoa ban không tồn tại&quot;, true);</span>
+            }
+
+<span class="nc bnc" id="L110" title="All 4 branches missed.">            if (form.getSpecialize() != null &amp;&amp; !subjectsRepository.isExistByDeptID(form.getDeptID(), form.getSpecialize())) {</span>
+<span class="nc" id="L111">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Môn chuyên không tồn tại&quot;, true);</span>
+            }
+
+<span class="nc bnc" id="L114" title="All 2 branches missed.">            if (!teacherRepository.hasTeacherById(form.getTeacher())) {</span>
+<span class="nc" id="L115">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Giáo viên không tồn tại&quot;, true);</span>
+            }
+
+<span class="nc" id="L118">            repository.update(form.getCode(), form.getYears(), form.getName(), form.getGradeLevel(), form.getDeptID(), form.getSpecialize(), form.getTeacher());</span>
+<span class="nc" id="L119">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật lớp học thành công&quot;, true);</span>
+<span class="nc" id="L120">        } catch (Exception e) {</span>
+<span class="nc" id="L121">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật lớp học thất bại&quot;, true);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; insert(ClassRoomForm form) {
+        try {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (repository.getClassRoomByCode(form.getCode()).isPresent()) {</span>
+<span class="nc" id="L129">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Mã lớp học đã tồn tại&quot;, true);</span>
+            }
+
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            if (!gradeLevelRepositpry.isExist(form.getGradeLevel())) {</span>
+<span class="nc" id="L133">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Khối không tồn tại&quot;, true);</span>
+            }
+
+<span class="nc bnc" id="L136" title="All 2 branches missed.">            if (!departmentRepository.isExistForClassRoom(form.getDeptID())) {</span>
+<span class="nc" id="L137">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Khoa ban không tồn tại&quot;, true);</span>
+            }
+
+<span class="nc bnc" id="L140" title="All 4 branches missed.">            if (form.getSpecialize() != null &amp;&amp; !subjectsRepository.isExistByDeptID(form.getDeptID(), form.getSpecialize())) {</span>
+<span class="nc" id="L141">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Môn chuyên không tồn tại&quot;, true);</span>
+            }
+
+<span class="nc bnc" id="L144" title="All 2 branches missed.">            if (!teacherRepository.hasTeacherById(form.getTeacher())) {</span>
+<span class="nc" id="L145">                return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Giáo viên không tồn tại&quot;, true);</span>
+            }
+            
+
+            
+<span class="nc" id="L150">            List&lt;ClassRoom&gt; classRooms = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L151">            classRooms.add(new ClassRoom(1000, LocalDateTime.now(), &quot;&quot;, LocalDateTime.now(), &quot;&quot;, form.getName(), form.getCode(), form.getDeptID(), form.getGradeLevel(), form.getYears(), form.getSpecialize(), form.getTeacher(), 0));</span>
+<span class="nc" id="L152">            repository.saveAll(classRooms);</span>
+
+<span class="nc" id="L154">            return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Thêm mới lớp học thành công&quot;, true);</span>
+<span class="nc" id="L155">        } catch (Exception e) {</span>
+<span class="nc" id="L156">            return new ServiceResult&lt;&gt;(HttpStatus.BAD_REQUEST, &quot;Thêm mới lớp học thất bại&quot;, true);</span>
+        }
+    }
+
+    @Override
+    public ServiceResult&lt;Map&lt;String, Object&gt;&gt; getAllClassByGradeLevelAndYears(int gradeLevel, String years) {
+<span class="nc" id="L162">        ServiceResult&lt;Map&lt;String, Object&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try {
+<span class="nc" id="L164">            List&lt;Map&lt;String, Object&gt;&gt; subjects = repository.getAllClassByGradeLevelAndYears(gradeLevel, years);</span>
+<span class="nc" id="L165">            Map&lt;String, Object&gt; output = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L166">            output.put(&quot;classrooms&quot;, subjects);</span>
+<span class="nc" id="L167">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L168">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L169">            serviceResult.setData(output);</span>
+<span class="nc" id="L170">        } catch (Exception e) {</span>
+<span class="nc" id="L171">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L172">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L173">        }</span>
+<span class="nc" id="L174">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;ClassRoom&gt;&gt; getClassroomByTeacherIdAndYear(Integer teacherId, String year) {
+<span class="nc" id="L179">        ServiceResult&lt;List&lt;ClassRoom&gt;&gt; serviceResult = new ServiceResult&lt;&gt;();</span>
+        try{
+<span class="nc" id="L181">            List&lt;ClassRoom&gt; list = repository.getClassroomByTeacherIdAndYear(teacherId, year);</span>
+<span class="nc" id="L182">            serviceResult.setMessage(&quot;success&quot;);</span>
+<span class="nc" id="L183">            serviceResult.setStatus(HttpStatus.OK);</span>
+<span class="nc" id="L184">            serviceResult.setData(list);</span>
+<span class="nc" id="L185">        } catch (Exception e) {</span>
+<span class="nc" id="L186">            serviceResult.setMessage(&quot;fail&quot;);</span>
+<span class="nc" id="L187">            serviceResult.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L188">        }</span>
+<span class="nc" id="L189">        return serviceResult;</span>
+    }
+
+    @Override
+    public ServiceResult&lt;List&lt;ClassRoom&gt;&gt; getClassManagedBy(String teacherCode, String year) {
+<span class="nc" id="L194">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;sucess&quot;, repository.getManageClassRooms(teacherCode, year));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>

@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransferStudentsServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Capstone</a> &gt; <a href="index.source.html" class="el_package">fpt.capstone.service</a> &gt; <span class="el_source">TransferStudentsServiceImpl.java</span></div><h1>TransferStudentsServiceImpl.java</h1><pre class="source lang-java linenums">package fpt.capstone.service;
+
+import fpt.capstone.entities.ServiceResult;
+import fpt.capstone.entities.StudentHistory;
+import fpt.capstone.entities.TransferStudents;
+import fpt.capstone.entities.TransferStudentsDetails;
+import fpt.capstone.form_data.TransferStudentsDetailsForm;
+import fpt.capstone.form_data.TransferStudentsForm;
+import fpt.capstone.form_data.TransferStudentsSearchForm;
+import fpt.capstone.repository.StudentHistoryRepository;
+import fpt.capstone.repository.StudentHistoryRepository;
+import fpt.capstone.repository.TransferStudentCustomRepository;
+import fpt.capstone.repository.TransferStudentsDetailsRepository;
+import fpt.capstone.repository.TransferStudentsRepository;
+
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import javax.transaction.Transactional;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
+
+
+import org.apache.poi.ss.usermodel.Font;
+
+
+@Service
+@Transactional(rollbackOn = {Exception.class})
+<span class="fc" id="L57">public class TransferStudentsServiceImpl implements TransferStudentsService {</span>
+<span class="fc" id="L58">    private final Logger log = LoggerFactory.getLogger(TransferStudentsServiceImpl.class);</span>
+    @Autowired
+    private TransferStudentsRepository transferStudentsRepository;
+    @Autowired
+    private TransferStudentsDetailsRepository transferStudentsDetailsRepository;
+    @Autowired
+    private TransferStudentCustomRepository transferStudentCustomRepository;
+    @Autowired
+    private StudentHistoryRepository studentHistoryRepository;
+
+
+    @Override
+    public Page&lt;TransferStudentsForm&gt; searchTransferStudents(TransferStudentsSearchForm transferStudentsSearchForm, Pageable pageable) {
+<span class="nc" id="L71">        return transferStudentCustomRepository.searchTransferStudents(transferStudentsSearchForm, pageable);</span>
+    }
+
+    @Override
+    public ServiceResult&lt;Boolean&gt; transferStudents(List&lt;TransferStudentsForm&gt; transferStudentsFormList) throws Exception {
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        for (TransferStudentsForm dto : transferStudentsFormList) {</span>
+            // if (dto.getCompetitionTitle() == null || dto.getCompetitionTitle().equals(&quot;&quot;)) {
+            //     return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Không cho phép kết chuyển do có học sinh: &quot; + dto.getDetails().getStudentName() + &quot; chưa có danh hiệu thi đua&quot;, null);
+            // }
+            try {
+<span class="nc" id="L81">                TransferStudents transferStudents = transferStudentsRepository.findBySchoolYearAndGradeCodeAndClassCode(</span>
+<span class="nc" id="L82">                        dto.getSchoolYear(),</span>
+<span class="nc" id="L83">                        dto.getGradeCode(),</span>
+<span class="nc" id="L84">                        dto.getClassCode()</span>
+<span class="nc" id="L85">                ).orElseGet(() -&gt;</span>
+<span class="nc" id="L86">                    transferStudentsRepository.save(</span>
+<span class="nc" id="L87">                            new TransferStudents(UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;), dto.getSchoolYear(), dto.getGradeCode(), dto.getClassCode())</span>
+                    )
+                );
+<span class="nc" id="L90">                TransferStudentsDetailsForm detailsDto = dto.getDetails();</span>
+<span class="nc" id="L91">                TransferStudentsDetails transferStudentsDetails = null;</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">                if (null!=detailsDto.getId()) {</span>
+<span class="nc" id="L93">                     transferStudentsDetails = new TransferStudentsDetails(detailsDto.getId(), detailsDto.getCode(),</span>
+<span class="nc" id="L94">                            detailsDto.getCurrentSchoolYear(), detailsDto.getCurrentClassCode(), detailsDto.getStudentCode(), detailsDto.getAcademicAbility(), detailsDto.getConduct(),</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">                            detailsDto.getStatus(), detailsDto.getNewClassCode(), detailsDto.getNewSchoolYear(), detailsDto.getId() == null ? transferStudents.getCode() : detailsDto.getParentCode());</span>
+                }else {
+<span class="nc" id="L97">                    transferStudentsDetails = new TransferStudentsDetails(UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;),</span>
+<span class="nc" id="L98">                            dto.getSchoolYear(), detailsDto.getCurrentClassCode(), detailsDto.getStudentCode(), detailsDto.getAcademicAbility(), detailsDto.getConduct(),</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">                            detailsDto.getStatus(), detailsDto.getNewClassCode(), detailsDto.getNewSchoolYear(), detailsDto.getId() == null ? transferStudents.getCode() : detailsDto.getParentCode());</span>
+                }
+<span class="nc" id="L101">                transferStudentsDetailsRepository.save(transferStudentsDetails);</span>
+<span class="nc" id="L102">                StudentHistory studentHistoryUse = new StudentHistory();</span>
+<span class="nc" id="L103">                Optional&lt;StudentHistory&gt; studentHistory = studentHistoryRepository.findByStudentCodeAndYear(transferStudentsDetails.getStudentCode(), transferStudentsDetails.getNewSchoolYear());</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">                if (studentHistory.isPresent()) {</span>
+<span class="nc" id="L105">                    studentHistoryUse = studentHistory.get();</span>
+<span class="nc" id="L106">                    studentHistoryUse.setCurrentClassCode(transferStudentsDetails.getNewClassCode());</span>
+                } else {
+<span class="nc" id="L108">                    studentHistoryUse.setStudentCode(transferStudentsDetails.getStudentCode());</span>
+<span class="nc" id="L109">                    studentHistoryUse.setYear(transferStudentsDetails.getNewSchoolYear());</span>
+<span class="nc" id="L110">                    studentHistoryUse.setCurrentClassCode(transferStudentsDetails.getNewClassCode());</span>
+                }
+<span class="nc" id="L112">                studentHistoryRepository.save(studentHistoryUse);</span>
+<span class="nc" id="L113">            } catch (Exception e) {</span>
+<span class="nc" id="L114">                e.printStackTrace();</span>
+                // for roll back:
+<span class="nc" id="L116">                throw new Exception();</span>
+<span class="nc" id="L117">            }</span>
+<span class="nc" id="L118">        }</span>
+<span class="nc" id="L119">        return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Kết chuyển học sinh thành công&quot;, null);</span>
+    }
+
+    @Override
+    public ByteArrayInputStream export(String className, String currentYear, String newYear,List&lt;TransferStudentsForm&gt; transferStudentsFormList)  {
+        try {
+<span class="nc" id="L125">            Workbook workbook = new XSSFWorkbook();</span>
+<span class="nc" id="L126">            Sheet transferSheet = workbook.createSheet(&quot;transferStudent&quot;);</span>
+            
+<span class="nc" id="L128">            CellStyle commonStyle = workbook.createCellStyle();</span>
+<span class="nc" id="L129">            commonStyle.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L130">            commonStyle.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+
+
+            
+<span class="nc" id="L134">            CellStyle cellStyle = workbook.createCellStyle();</span>
+<span class="nc" id="L135">            cellStyle.setTopBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L136">            cellStyle.setRightBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L137">            cellStyle.setBottomBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L138">            cellStyle.setLeftBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L139">            cellStyle.setBorderTop(BorderStyle.THIN);</span>
+<span class="nc" id="L140">            cellStyle.setBorderBottom(BorderStyle.THIN);</span>
+<span class="nc" id="L141">            cellStyle.setBorderLeft(BorderStyle.THIN);</span>
+<span class="nc" id="L142">            cellStyle.setBorderRight(BorderStyle.THIN);</span>
+<span class="nc" id="L143">            cellStyle.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L144">            cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+
+
+<span class="nc" id="L147">            CellStyle cellStyleBold = workbook.createCellStyle();</span>
+<span class="nc" id="L148">            cellStyleBold.setTopBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L149">            cellStyleBold.setRightBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L150">            cellStyleBold.setBottomBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L151">            cellStyleBold.setLeftBorderColor(IndexedColors.BLACK.index);</span>
+<span class="nc" id="L152">            cellStyleBold.setBorderTop(BorderStyle.THIN);</span>
+<span class="nc" id="L153">            cellStyleBold.setBorderBottom(BorderStyle.THIN);</span>
+<span class="nc" id="L154">            cellStyleBold.setBorderLeft(BorderStyle.THIN);</span>
+<span class="nc" id="L155">            cellStyleBold.setBorderRight(BorderStyle.THIN);</span>
+<span class="nc" id="L156">            cellStyleBold.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L157">            cellStyleBold.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+<span class="nc" id="L158">            Font font= workbook.createFont();</span>
+<span class="nc" id="L159">            font.setBold(true);</span>
+<span class="nc" id="L160">            cellStyleBold.setFont(font);</span>
+
+
+<span class="nc" id="L163">            CellStyle cellOnlyBold = workbook.createCellStyle();</span>
+<span class="nc" id="L164">            cellStyleBold.setAlignment(HorizontalAlignment.CENTER);</span>
+<span class="nc" id="L165">            cellStyleBold.setVerticalAlignment(VerticalAlignment.CENTER);</span>
+<span class="nc" id="L166">            Font fontf= workbook.createFont();</span>
+<span class="nc" id="L167">            fontf.setBold(true);</span>
+<span class="nc" id="L168">            fontf.setFontHeightInPoints((short) 14);</span>
+<span class="nc" id="L169">            cellOnlyBold.setFont(fontf);   </span>
+
+<span class="nc" id="L171">            transferSheet.createRow(0).createCell(0).setCellValue(&quot;DANH SÁCH KẾT CHUYỂN HỌC SINH &quot; + className);</span>
+<span class="nc" id="L172">            transferSheet.getRow(0).getCell(0).setCellStyle(cellOnlyBold);</span>
+<span class="nc" id="L173">            transferSheet.createRow(0).createCell(1).setCellStyle(cellOnlyBold);</span>
+<span class="nc" id="L174">            transferSheet.createRow(0).createCell(2).setCellStyle(cellOnlyBold);</span>
+<span class="nc" id="L175">            transferSheet.createRow(0).createCell(3).setCellStyle(cellOnlyBold);</span>
+<span class="nc" id="L176">            transferSheet.createRow(0).createCell(4).setCellStyle(cellOnlyBold);</span>
+<span class="nc" id="L177">            transferSheet.createRow(0).createCell(5).setCellStyle(cellOnlyBold);</span>
+<span class="nc" id="L178">            transferSheet.createRow(0).createCell(6).setCellStyle(cellOnlyBold);</span>
+<span class="nc" id="L179">            transferSheet.createRow(0).createCell(7).setCellStyle(cellOnlyBold);</span>
+<span class="nc" id="L180">            transferSheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 7));</span>
+            
+
+<span class="nc" id="L183">            transferSheet.createRow(1).createCell(0).setCellValue(&quot;Năm học &quot; + currentYear);</span>
+<span class="nc" id="L184">            transferSheet.getRow(1).getCell(0).setCellStyle(commonStyle);</span>
+<span class="nc" id="L185">            transferSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 7));</span>
+<span class="nc" id="L186">            transferSheet.createRow(2);</span>
+<span class="nc" id="L187">            transferSheet.createRow(3);</span>
+
+<span class="nc" id="L189">            transferSheet.createRow(4).createCell(0).setCellValue(&quot;STT&quot;);</span>
+<span class="nc" id="L190">            transferSheet.getRow(4).createCell(1).setCellValue(&quot;Năm học &quot; + currentYear);</span>
+<span class="nc" id="L191">            transferSheet.getRow(4).createCell(6).setCellValue(&quot;Năm học &quot; + newYear);</span>
+
+<span class="nc" id="L193">            transferSheet.getRow(4).getCell(0).setCellStyle(cellStyleBold);</span>
+<span class="nc" id="L194">            transferSheet.getRow(4).getCell(1).setCellStyle(cellStyleBold);</span>
+<span class="nc" id="L195">            transferSheet.getRow(4).getCell(6).setCellStyle(cellStyleBold);</span>
+
+<span class="nc" id="L197">            transferSheet.getRow(4).createCell(2).setCellStyle(cellStyleBold);</span>
+<span class="nc" id="L198">            transferSheet.getRow(4).createCell(3).setCellStyle(cellStyleBold);</span>
+<span class="nc" id="L199">            transferSheet.getRow(4).createCell(4).setCellStyle(cellStyleBold);</span>
+<span class="nc" id="L200">            transferSheet.getRow(4).createCell(5).setCellStyle(cellStyleBold);</span>
+
+<span class="nc" id="L202">            transferSheet.getRow(4).createCell(7).setCellStyle(cellStyleBold);</span>
+
+
+<span class="nc" id="L205">            transferSheet.addMergedRegion(new CellRangeAddress(4, 4, 1, 5));</span>
+<span class="nc" id="L206">            transferSheet.addMergedRegion(new CellRangeAddress(4, 4, 6, 7));</span>
+
+<span class="nc" id="L208">            transferSheet.createRow(5).createCell(1).setCellValue(&quot;Mã học sinh&quot;);</span>
+<span class="nc" id="L209">            transferSheet.getRow(5).getCell(1).setCellStyle(cellStyleBold);</span>
+
+<span class="nc" id="L211">            transferSheet.getRow(5).createCell(0).setCellValue(&quot;STT&quot;);</span>
+<span class="nc" id="L212">            transferSheet.getRow(5).getCell(0).setCellStyle(cellStyleBold);</span>
+
+<span class="nc" id="L214">            transferSheet.addMergedRegion(new CellRangeAddress(4, 5, 0, 0));</span>
+
+<span class="nc" id="L216">            transferSheet.getRow(5).createCell(2).setCellValue(&quot;Tên học sinh&quot;);</span>
+<span class="nc" id="L217">            transferSheet.getRow(5).getCell(2).setCellStyle(cellStyleBold);</span>
+
+<span class="nc" id="L219">            transferSheet.getRow(5).createCell(3).setCellValue(&quot;Tên lớp&quot;);</span>
+<span class="nc" id="L220">            transferSheet.getRow(5).getCell(3).setCellStyle(cellStyleBold);</span>
+
+<span class="nc" id="L222">            transferSheet.getRow(5).createCell(4).setCellValue(&quot;Danh hiệu thi đua&quot;);</span>
+<span class="nc" id="L223">            transferSheet.getRow(5).getCell(4).setCellStyle(cellStyleBold);</span>
+
+<span class="nc" id="L225">            transferSheet.getRow(5).createCell(5).setCellValue(&quot;Trạng thái&quot;);</span>
+<span class="nc" id="L226">            transferSheet.getRow(5).getCell(5).setCellStyle(cellStyleBold);</span>
+
+<span class="nc" id="L228">            transferSheet.getRow(5).createCell(6).setCellValue(&quot;Được lên lớp&quot;);</span>
+<span class="nc" id="L229">            transferSheet.getRow(5).getCell(6).setCellStyle(cellStyleBold);</span>
+
+<span class="nc" id="L231">            transferSheet.getRow(5).createCell(7).setCellValue(&quot;Lớp lưu ban&quot;);</span>
+<span class="nc" id="L232">            transferSheet.getRow(5).getCell(7).setCellStyle(cellStyleBold);</span>
+
+
+            
+<span class="nc" id="L236">            int startRowCreate = 5;</span>
+            // Get all rows
+<span class="nc" id="L238">            int rowNum = 0;</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">            for(TransferStudentsForm i: transferStudentsFormList) {</span>
+<span class="nc" id="L240">                rowNum += 1;</span>
+<span class="nc" id="L241">                startRowCreate += 1;</span>
+                
+<span class="nc" id="L243">                Row currentRow = transferSheet.getRow(startRowCreate);</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">                if (currentRow == null) {</span>
+<span class="nc" id="L245">                    currentRow = transferSheet.createRow(startRowCreate);</span>
+                }
+<span class="nc bnc" id="L247" title="All 2 branches missed.">                for(int j=0;j&lt;8;j++) {</span>
+<span class="nc" id="L248">                    Cell cell = currentRow.getCell(j);</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">                    if (cell == null) {</span>
+<span class="nc" id="L250">                        cell = currentRow.createCell(j);</span>
+                    }
+<span class="nc" id="L252">                    cell.setCellStyle(cellStyle);</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">                    if(j == 0) {</span>
+<span class="nc" id="L254">                        cell.setCellType(Cell.CELL_TYPE_NUMERIC);</span>
+<span class="nc" id="L255">                        cell.setCellValue(rowNum);</span>
+                    
+<span class="nc bnc" id="L257" title="All 2 branches missed.">                    } else if (j==1) {</span>
+<span class="nc" id="L258">                        cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc" id="L259">                        cell.setCellValue(i.getDetails().getStudentCode());   </span>
+
+<span class="nc bnc" id="L261" title="All 2 branches missed.">                    } else if (j==2) {</span>
+<span class="nc" id="L262">                        cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc" id="L263">                        cell.setCellValue(i.getDetails().getStudentName());    </span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">                    } else if (j==3) {</span>
+<span class="nc" id="L265">                        cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc" id="L266">                        cell.setCellValue(i.getClassCode() + &quot; - &quot; + i.getClassName());    </span>
+                    }
+<span class="nc bnc" id="L268" title="All 2 branches missed.">                    else if (j==4) {</span>
+<span class="nc" id="L269">                        cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">                        if(i.getCompetitionTitle() !=  null) {</span>
+<span class="nc" id="L271">                            cell.setCellValue(i.getCompetitionTitle());   </span>
+                        } else {
+<span class="nc" id="L273">                            cell.setCellValue(&quot;&quot;);</span>
+                        }
+<span class="nc bnc" id="L275" title="All 2 branches missed.">                    } else if (j==5) {</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">                        if (i.getDetails().getStatus() == null) {</span>
+<span class="nc" id="L277">                            cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc" id="L278">                            cell.setCellValue(&quot;Chưa kết chuyển&quot;);   </span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">                        } else if (i.getDetails().getStatus() == 0) {</span>
+<span class="nc" id="L280">                            cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc" id="L281">                            cell.setCellValue(&quot;Lưu ban&quot;);   </span>
+                        } else {
+<span class="nc" id="L283">                            cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc" id="L284">                            cell.setCellValue(&quot;Được lên lớp&quot;);   </span>
+                        }
+<span class="nc bnc" id="L286" title="All 2 branches missed.">                    } else if (j==6) {</span>
+<span class="nc" id="L287">                        cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">                        if (i.getDetails().getStatus() == null) {</span>
+<span class="nc" id="L289">                            cell.setCellValue(&quot;&quot;);</span>
+                        }
+<span class="nc bnc" id="L291" title="All 2 branches missed.">                        else if (i.getDetails().getStatus() == 1){</span>
+<span class="nc" id="L292">                            cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">                            if(i.getDetails().getNewClassName() !=  null) {</span>
+<span class="nc" id="L294">                                cell.setCellValue(i.getDetails().getNewClassName());   </span>
+                            } else  {
+<span class="nc" id="L296">                                cell.setCellValue(&quot;&quot;);   </span>
+                            }  
+                        } else {
+<span class="nc" id="L299">                            cell.setCellValue(&quot;&quot;);</span>
+                        }
+<span class="nc bnc" id="L301" title="All 2 branches missed.">                    } else if (j == 7) {</span>
+<span class="nc" id="L302">                        cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">                        if (i.getDetails().getStatus() == null) {</span>
+<span class="nc" id="L304">                            cell.setCellValue(&quot;&quot;);</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">                        } else if (i.getDetails().getStatus() == 0) {</span>
+<span class="nc" id="L306">                            cell.setCellType(Cell.CELL_TYPE_STRING);</span>
+<span class="nc bnc" id="L307" title="All 2 branches missed.">                            if(i.getDetails().getNewClassName() !=  null) {</span>
+<span class="nc" id="L308">                                cell.setCellValue(i.getDetails().getNewClassName()); </span>
+                            } else {
+<span class="nc" id="L310">                                cell.setCellValue(&quot;&quot;);</span>
+                            }
+                        } else {
+<span class="nc" id="L313">                            cell.setCellValue(&quot;&quot;);</span>
+                        }
+                    }
+                }        
+<span class="nc" id="L317">            }</span>
+
+<span class="nc bnc" id="L319" title="All 2 branches missed.">            for (int j = 0; j &lt; 8; j++) {</span>
+<span class="nc" id="L320">                transferSheet.autoSizeColumn(j);</span>
+            }
+
+<span class="nc" id="L323">            ByteArrayOutputStream out = new ByteArrayOutputStream();</span>
+<span class="nc" id="L324">            workbook.write(out);</span>
+<span class="nc" id="L325">            workbook.close();</span>
+<span class="nc" id="L326">            return new ByteArrayInputStream(out.toByteArray());</span>
+<span class="nc" id="L327">        } catch (Exception e) {</span>
+<span class="nc" id="L328">            return null;</span>
+        }
+    }
+    // @Override
+    // public ServiceResult&lt;Boolean&gt; transfer1Student(TransferStudentsForm form) {
+    //     if (form.getCompetitionTitle() == null || form.getCompetitionTitle().equals(&quot;&quot;)) {
+    //         return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Không cho phép kết chuyển do có học sinh: &quot; + form.getDetails().getStudentName() + &quot; không hợp lệ&quot;, null);
+    //     }
+    //     else{
+    //         TransferStudents transferStudents = transferStudentsRepository.findBySchoolYearAndGradeCodeAndClassCode(
+    //                 form.getSchoolYear(),
+    //                 form.getGradeCode(),
+    //                 form.getClassCode()
+    //         ).orElseGet(() -&gt;
+    //                 transferStudentsRepository.save(
+    //                         new TransferStudents(UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;), form.getSchoolYear(), form.getGradeCode(), form.getClassCode())
+    //                 )
+    //         );
+    //         TransferStudentsDetailsForm detailsDto = form.getDetails();
+    //         TransferStudentsDetails transferStudentsDetails = new TransferStudentsDetails(detailsDto.getId(), detailsDto.getId() == null ? UUID.randomUUID().toString().replace(&quot;-&quot;, &quot;&quot;) : detailsDto.getCode(),
+    //                 detailsDto.getCurrentClassCode(), detailsDto.getCurrentClassCode(), detailsDto.getStudentCode(), detailsDto.getAcademicAbility(), detailsDto.getConduct(),
+    //                 detailsDto.getStatus(), detailsDto.getNewClassCode(), detailsDto.getNewSchoolYear(), detailsDto.getId() == null ? transferStudents.getCode() : detailsDto.getParentCode());
+
+    //         transferStudentsDetailsRepository.save(transferStudentsDetails);
+    //         StudentHistory studentHistoryUse = new StudentHistory();
+    //         Optional&lt;StudentHistory&gt; studentHistory = studentHistoryRepository.findByStudentCodeAndYear(transferStudentsDetails.getStudentCode(), transferStudentsDetails.getNewSchoolYear());
+    //         if (null != studentHistory) {
+    //             studentHistoryUse = studentHistory.get();
+    //             studentHistoryUse.setCurrentClassCode(transferStudentsDetails.getNewClassCode());
+    //         } else {
+    //             studentHistoryUse.setStudentCode(transferStudentsDetails.getStudentCode());
+    //             studentHistoryUse.setYear(transferStudentsDetails.getNewSchoolYear());
+    //             studentHistoryUse.setCurrentClassCode(transferStudentsDetails.getNewClassCode());
+    //         }
+    //         studentHistoryRepository.save(studentHistoryUse);
+    //     }
+    //     return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Kết chuyển học sinh thành công&quot;, null);
+    // }
+
+    // @Override
+    // public ServiceResult&lt;Boolean&gt; UpdateTransfer1Student(TransferStudentsForm transferStudentsForm) {
+    //     if (null==transferStudentsForm.getDetails().getId()||transferStudentsDetailsRepository.getById(transferStudentsForm.getDetails().getId())==null){
+    //         return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Học sinh này chưa kết chuyển nên không thể cập nhât&quot;, null);
+    //     }
+    //     else {
+    //         TransferStudentsDetails transferStudentsDetails =transferStudentsDetailsRepository.getById(transferStudentsForm.getDetails().getId());
+    //         transferStudentsDetails.setNewClassCode(transferStudentsForm.getDetails().getNewClassCode());
+    //         transferStudentsDetails.setStatus(transferStudentsForm.getDetails().getStatus());
+    //         transferStudentsDetailsRepository.save(transferStudentsDetails);
+    //         Optional&lt;StudentHistory&gt; studentHistory = studentHistoryRepository.findByStudentCodeAndYear(transferStudentsDetails.getStudentCode(), transferStudentsDetails.getNewSchoolYear());
+    //         StudentHistory studentHistoryUpdate=studentHistory.get();
+    //         if (studentHistory.isPresent()) {
+    //             studentHistoryUpdate.setCurrentClassCode(transferStudentsForm.getDetails().getNewClassCode());
+    //             studentHistoryRepository.save(studentHistoryUpdate);
+    //         } else {
+    //             StudentHistory studentHistoryNew =new StudentHistory(transferStudentsForm.getDetails().getStudentCode(),transferStudentsForm.getDetails().getNewClassCode(),transferStudentsForm.getDetails().getNewSchoolYear());
+    //             studentHistoryRepository.save(studentHistoryNew);
+    //         }
+    //     }
+    //     return new ServiceResult&lt;&gt;(HttpStatus.OK, &quot;Cập nhật kết chuyển học sinh thành công&quot;, null);    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.6.202009150832</span></div></body></html>
